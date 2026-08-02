@@ -605,6 +605,16 @@
       renderTable(customersList.filter(c => c.payType === filter));
     }
   }
-</script>
-</body>
+// 🔄 سحب البيانات تلقائياً من Google Sheets أول ما تفتح الصفحة
+  window.onload = function() {
+    fetch(GOOGLE_SCRIPT_URL)
+      .then(res => res.json())
+      .then(data => {
+        if(Array.isArray(data) && data.length > 0) {
+          customersList = data;
+          renderTable(customersList);
+        }
+      })
+      .catch(err => console.log("خطأ أو جاري التحميل..."));
+  };</body>
 </html>
