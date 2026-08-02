@@ -77,6 +77,8 @@
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
   .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 750px; width: 100%; max-height: 90vh; overflow-y: auto; }
 
+  .img-preview { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); margin-top: 6px; display: none; }
+
   @media print {
     body * { visibility: hidden !important; }
     #printReceiptArea, #printReceiptArea * { visibility: visible !important; }
@@ -96,7 +98,7 @@
 <body>
 
 <div class="container">
-  <!-- Header Branding with SVG/Img Logo fallback -->
+  <!-- Header Branding with Logo -->
   <header>
     <div class="brand-logo">
       <div class="logo-box">
@@ -104,7 +106,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة وتخزين بيانات العملاء دكتور بهاء شكري </p>
+        <p>نظام إدارة وتخزين بيانات العملاء  </p>
       </div>
     </div>
     <div style="font-size: 0.85rem; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px;">
@@ -114,10 +116,7 @@
 
   <!-- Search & Filter Card -->
   <div class="card" style="background: #f1f5f9;">
-    <div class="card-title" style="border-color: #cbd5e1; display:flex; justify-content:space-between; align-items:center;">
-      <span>🔍 البحث السريع وفلترة الحالات</span>
-      <button onclick="fetchOnlineData()" class="btn" style="width:auto; padding:4px 12px; font-size:0.8rem; background:#475569;">🔄 تحديث واستدعاء البيانات</button>
-    </div>
+    <div class="card-title" style="border-color: #cbd5e1;">🔍 البحث السريع وفلترة الحالات</div>
     <div class="grid">
       <div class="field">
         <label>ابحث باسم العميل، التليفون، أو الرقم القومي</label>
@@ -193,6 +192,11 @@
           <label>تاريخ العملية</label>
           <input type="date" id="opDate">
         </div>
+        <div class="field">
+          <label>📷 صورة بطاقة العميل (وجهين/اختياري)</label>
+          <input type="file" id="custCardImg" accept="image/*" onchange="previewImg(this, 'custImgPrev')">
+          <img id="custImgPrev" class="img-preview">
+        </div>
       </div>
 
       <div class="grid">
@@ -216,12 +220,17 @@
 
       <!-- Guarantor Section -->
       <div id="guarantorBox" class="guarantor-section">
-        <div style="font-weight: bold; color: var(--success); margin-bottom: 12px;">🤝 بيانات الضامن الشخصي:</div>
+        <div style="font-weight: bold; color: var(--success); margin-bottom: 12px;">🤝 بيانات وشروط الضامن الشخصي:</div>
         <div class="grid">
           <div class="field"><label>اسم الضامن</label><input type="text" id="gName"></div>
           <div class="field"><label>الرقم القومي للضامن</label><input type="text" id="gId"></div>
           <div class="field"><label>عنوان الضامن</label><input type="text" id="gAddress"></div>
           <div class="field"><label>تليفون الضامن</label><input type="tel" id="gPhone"></div>
+          <div class="field">
+            <label>📷 صورة بطاقة الضامن (اختياري)</label>
+            <input type="file" id="gCardImg" accept="image/*" onchange="previewImg(this, 'gImgPrev')">
+            <img id="gImgPrev" class="img-preview">
+          </div>
         </div>
       </div>
 
@@ -260,7 +269,7 @@
         </tr>
       </thead>
       <tbody id="customersTableBody">
-        <tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب وسحب البيانات المسجلة من Google Sheets...</td></tr>
+        <!-- Filled by JS -->
       </tbody>
     </table>
   </div>
@@ -324,7 +333,7 @@
       <img src="Logo.png" alt="Logo" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.png'; this.onerror=null;">
     </div>
     <div>
-      <h2 style="margin:0;"> د. بهاء شكري - Dr. Bahaa Shoukry</h2>
+      <h2 style="margin:0;">🩺 د. بهاء شكري - Dr. Bahaa Shoukry</h2>
       <p style="margin:2px 0;">استشاري جراحات السمنة والمناظير</p>
       <p id="pDate" style="margin-top: 5px; font-size: 0.9rem;"></p>
     </div>
@@ -335,29 +344,29 @@
 <script>
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8IeJUoO4v_Ao6H58NcnciYo_aMtTte2j-6UxlXMRLAAVX9G7MBNTS56hgsgdC96Eseg/exec";
 
-  let customersList = [];
+  // استدعاء البيانات تلقائياً من الذاكرة الحافظة للمتصفح أول ما تفتح الصفحة
+  let customersList = JSON.parse(localStorage.getItem('bahaa_clinic_data')) || [];
   let currentActiveIndex = null;
+
+  let currentCustImg = "";
+  let currentGuarantorImg = "";
 
   window.onload = function() {
     handlePaymentTypeChange();
-    fetchOnlineData();
+    renderTable(customersList);
   };
 
-  function fetchOnlineData() {
-    let tbody = document.getElementById('customersTableBody');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب وسحب البيانات المسجلة من Google Sheets...</td></tr>';
-    
-    fetch(GOOGLE_SCRIPT_URL)
-      .then(res => res.json())
-      .then(data => {
-        if(Array.isArray(data)) {
-          customersList = data;
-          renderTable(customersList);
-        }
-      })
-      .catch(err => {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">⚠️ اضغط على زر "تحديث واستدعاء البيانات" لإظهار القائمة كاملة.</td></tr>';
-      });
+  function previewImg(input, targetId) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById(targetId).src = e.target.result;
+        document.getElementById(targetId).style.display = 'block';
+        if(targetId === 'custImgPrev') currentCustImg = e.target.result;
+        if(targetId === 'gImgPrev') currentGuarantorImg = e.target.result;
+      }
+      reader.readAsDataURL(input.files[0]);
+    }
   }
 
   function handlePaymentTypeChange() {
@@ -384,12 +393,18 @@
 
     let opDate = document.getElementById('opDate').value || new Date().toISOString().split('T')[0];
 
+    // بيانات الضامن
+    let gName = document.getElementById('gName').value || '';
+    let gId = document.getElementById('gId').value || '';
+    let gPhone = document.getElementById('gPhone').value || '';
+
     let formData = {
       code, name, phone1: phone, nationalId, operationType: type,
       hospital, governorate: gov, eliteCard: elite, paymentType: payType,
       company, totalPrice: total, paidPrice: initialPaid, remaining: total - initialPaid, date: opDate
     };
 
+    // إرسال البيانات أونلاين لجوجل شيت
     fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
@@ -410,14 +425,26 @@
       customersList[editIdx].total = total;
       customersList[editIdx].initialPaid = initialPaid;
       customersList[editIdx].payType = payType;
-      alert("✅ تم تعديل بيانات العميل بنجاح وترحيلها لشيت جوجل!");
+      customersList[editIdx].gName = gName;
+      customersList[editIdx].gId = gId;
+      customersList[editIdx].gPhone = gPhone;
+      if(currentCustImg) customersList[editIdx].custImg = currentCustImg;
+      if(currentGuarantorImg) customersList[editIdx].gImg = currentGuarantorImg;
+
+      alert("✅ تم تعديل بيانات العميل بنجاح وترحيلها!");
     } else {
       let history = [
         { date: opDate, amount: initialPaid, type: payType === 'cash' ? 'دفعة كاش كاملة' : 'مقدم العملية' }
       ];
-      customersList.push({ code, name, phone, nationalId, type, hospital, gov, elite, company, total, initialPaid, payType, history });
+      customersList.push({ 
+        code, name, phone, nationalId, type, hospital, gov, elite, company, total, initialPaid, payType, history,
+        gName, gId, gPhone, custImg: currentCustImg, gImg: currentGuarantorImg 
+      });
       alert("✅ تم حفظ العميل وإضافته للقائمة بنجاح!");
     }
+
+    // حفظ في ذاكرة المتصفح للعمل بدون انقطاع
+    localStorage.setItem('bahaa_clinic_data', JSON.stringify(customersList));
 
     renderTable(customersList);
     cancelEdit();
@@ -443,6 +470,19 @@
     document.getElementById('totalPrice').value = c.total;
     document.getElementById('paidPrice').value = c.initialPaid;
 
+    document.getElementById('gName').value = c.gName || '';
+    document.getElementById('gId').value = c.gId || '';
+    document.getElementById('gPhone').value = c.gPhone || '';
+
+    if(c.custImg) {
+      document.getElementById('custImgPrev').src = c.custImg;
+      document.getElementById('custImgPrev').style.display = 'block';
+    }
+    if(c.gImg) {
+      document.getElementById('gImgPrev').src = c.gImg;
+      document.getElementById('gImgPrev').style.display = 'block';
+    }
+
     handlePaymentTypeChange();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -453,6 +493,10 @@
     document.getElementById('saveBtn').innerText = "💾 حفظ العميل وترحيله أونلاين";
     document.getElementById('cancelEditBtn').style.display = "none";
     document.getElementById('customerForm').reset();
+    document.getElementById('custImgPrev').style.display = 'none';
+    document.getElementById('gImgPrev').style.display = 'none';
+    currentCustImg = "";
+    currentGuarantorImg = "";
     handlePaymentTypeChange();
   }
 
@@ -539,6 +583,10 @@
 
     if(!customersList[currentActiveIndex].history) customersList[currentActiveIndex].history = [];
     customersList[currentActiveIndex].history.push({ date: date, amount: amount, type: 'قسط مسدد' });
+    
+    // حفظ التحديث
+    localStorage.setItem('bahaa_clinic_data', JSON.stringify(customersList));
+
     document.getElementById('instAmount').value = '';
     document.getElementById('instDate').value = '';
     
@@ -574,6 +622,14 @@
         <p><b>كارت إيليت:</b> ${c.elite} | <b>نظام الدفع:</b> ${payText}</p>
         <hr style="margin:15px 0; border:1px solid #000;">
     `;
+
+    if(c.payType === 'installment' && c.gName) {
+      printHTML += `
+        <h4>بيانات الضامن المعين:</h4>
+        <p><b>اسم الضامن:</b> ${c.gName} | <b>الرقم القومي للضامن:</b> ${c.gId || '-'} | <b>تليفون الضامن:</b> ${c.gPhone || '-'}</p>
+        <hr style="margin:15px 0; border:1px solid #000;">
+      `;
+    }
 
     if(c.payType === 'cash') {
       printHTML += `
