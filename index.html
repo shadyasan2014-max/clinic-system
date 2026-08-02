@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام إدارة العملاء - د. بهاء شكري</title>
+<title>نظام إدارة العمليات والأقساط - د. بهاء شكري</title>
 <style>
   :root {
     --primary: #0e7490;
@@ -20,7 +20,6 @@
   body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
   .container { max-width: 1100px; margin: 0 auto; }
   
-  /* Header Branding with Logo */
   header { 
     background: #0f4c5c; 
     color: white; 
@@ -73,7 +72,6 @@
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
   .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 750px; width: 100%; max-height: 90vh; overflow-y: auto; }
 
-  /* 🖨️ Fix Print Paper Styles with Logo */
   @media print {
     body * { visibility: hidden !important; }
     #printReceiptArea, #printReceiptArea * { visibility: visible !important; }
@@ -313,7 +311,7 @@
   <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 15px;">
     <img src="logo.png" alt="Logo" style="width:70px; height:70px; border-radius:50%;" onerror="this.style.display='none'">
     <div>
-      <h2 style="margin:0;"> د. بهاء شكري - Dr. Bahaa Shoukry</h2>
+      <h2 style="margin:0;">🩺 د. بهاء شكري - Dr. Bahaa Shoukry</h2>
       <p style="margin:2px 0;">استشاري جراحات السمنة والمناظير</p>
       <p id="pDate" style="margin-top: 5px; font-size: 0.9rem;"></p>
     </div>
@@ -327,12 +325,26 @@
   let customersList = [];
   let currentActiveIndex = null;
 
+  // 🔄 سحب البيانات تلقائياً عند فتح الصفحة
+  window.onload = function() {
+    handlePaymentTypeChange();
+    
+    fetch(GOOGLE_SCRIPT_URL)
+      .then(res => res.json())
+      .then(data => {
+        if(Array.isArray(data) && data.length > 0) {
+          customersList = data;
+          renderTable(customersList);
+        }
+      })
+      .catch(err => console.log("جاري التحميل أو لا توجد داتا سابقة..."));
+  };
+
   function handlePaymentTypeChange() {
     const type = document.getElementById('paymentType').value;
     document.getElementById('guarantorBox').style.display = (type === 'installment') ? 'block' : 'none';
     document.getElementById('companyBox').style.display = (type === 'company') ? 'block' : 'none';
   }
-  handlePaymentTypeChange();
 
   function saveAndSync() {
     let editIdx = parseInt(document.getElementById('editIndex').value);
@@ -605,18 +617,6 @@
       renderTable(customersList.filter(c => c.payType === filter));
     }
   }
-// 🔄 سحب البيانات تلقائياً من Google Sheets أول ما تفتح الصفحة
-  window.onload = function() {
-    fetch(GOOGLE_SCRIPT_URL)
-      .then(res => res.json())
-      .then(data => {
-        if(Array.isArray(data) && data.length > 0) {
-          customersList = data;
-          renderTable(customersList);
-        }
-      })
-      .catch(err => console.log("خطأ أو جاري التحميل..."));
-  };
 </script>
 </body>
 </html>
