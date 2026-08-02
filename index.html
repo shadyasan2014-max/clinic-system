@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة العملاء - د. بهاء شكري</title>
+<style>
+  :root {
+    --primary: #0e7490;
+    --primary-hover: #155e75;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --danger: #dc2626;
+  }
+  
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+  body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  
+  /* Header Branding with Logo */
+  header { 
+    background: #0f4c5c; 
+    color: white; 
+    padding: 16px 24px; 
+    border-radius: 12px; 
+    margin-bottom: 24px; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+  }
+  .brand-logo { display: flex; align-items: center; gap: 16px; }
+  .logo-img {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #84cc16;
+    background: #fff;
+  }
+  .header-text h1 { font-size: 1.4rem; margin-bottom: 2px; }
+  .header-text p { font-size: 0.85rem; color: #a3e635; }
+  
+  .card { background: var(--card-bg); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .card-title { font-size: 1.2rem; font-weight: bold; color: var(--primary); margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+  
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.9rem; font-weight: 600; color: #475569; }
+  .field input, .field select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
+
+  .guarantor-section, .company-section { background-color: #f0fdf4; border: 1px dashed #86efac; padding: 16px; border-radius: 8px; margin-top: 12px; display: none; }
+  .company-section { background-color: #fef3c7; border-color: #fcd34d; }
+  
+  .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; width: 100%; }
+  .btn:hover { background: var(--primary-hover); }
+  .btn-print { background: #475569; }
+  .btn-edit { background: #d97706; }
+  .btn-edit:hover { background: #b45309; }
+  
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; text-align: right; }
+  th, td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  th { background-color: #f1f5f9; color: #475569; }
+  
+  .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+  .badge-installments { background: #fef3c7; color: #d97706; }
+  .badge-company { background: #e0e7ff; color: #3730a3; }
+  .badge-cash { background: #dcfce7; color: #16a34a; }
+
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
+  .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 750px; width: 100%; max-height: 90vh; overflow-y: auto; }
+
+  /* 🖨️ Fix Print Paper Styles with Logo */
+  @media print {
+    body * { visibility: hidden !important; }
+    #printReceiptArea, #printReceiptArea * { visibility: visible !important; }
+    #printReceiptArea { 
+      display: block !important;
+      position: absolute !important; 
+      left: 0 !important; 
+      top: 0 !important; 
+      width: 100% !important; 
+      padding: 20px !important; 
+      background: #fff !important;
+      color: #000 !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="brand-logo">
+      <img src="logo.png" alt="Dr. Bahaa Shoukry Logo" class="logo-img" onerror="this.style.display='none'">
+      <div class="header-text">
+        <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
+        <p>نظام إدارة وتخزين بيانات العملاء وحسابات الأقساط</p>
+      </div>
+    </div>
+    <div style="font-size: 0.85rem; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px;">
+      عيادة جراحة السمنة
+    </div>
+  </header>
+
+  <!-- Search & Filter Card -->
+  <div class="card" style="background: #f1f5f9;">
+    <div class="card-title" style="border-color: #cbd5e1;">🔍 البحث السريع وفلترة الحالات</div>
+    <div class="grid">
+      <div class="field">
+        <label>ابحث باسم العميل، التليفون، أو الرقم القومي</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="searchInput" placeholder="اكتب للبحث..." onkeyup="searchCustomer()" style="flex: 1;">
+          <button class="btn" style="width: auto; padding: 10px 16px;" onclick="searchCustomer()">بحث</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>فلتر الحالات</label>
+        <select id="statusFilter" onchange="filterCustomers()">
+          <option value="all">عرض الكل</option>
+          <option value="installment">قسط مباشر معنا</option>
+          <option value="company">قسط شركة خارجية</option>
+          <option value="cash">عملاء الكاش</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Section -->
+  <form id="customerForm" onsubmit="event.preventDefault(); saveAndSync();">
+    <div class="card">
+      <div class="card-title" id="formTitle">📝 1. تسجيل عميل جديد</div>
+      
+      <input type="hidden" id="editIndex" value="-1">
+
+      <div class="grid">
+        <div class="field">
+          <label>كود العميل</label>
+          <input type="text" id="custCode" placeholder="مثال: C-101" required>
+        </div>
+        <div class="field">
+          <label>اسم العميل بالكامل</label>
+          <input type="text" id="custName" placeholder="أحمد محمد علي" required>
+        </div>
+        <div class="field">
+          <label>الرقم القومي (14 رقم)</label>
+          <input type="text" id="custNationalId" placeholder="29500000000000">
+        </div>
+        <div class="field">
+          <label>العنوان</label>
+          <input type="text" id="custAddress" placeholder="القاهرة، مدينة نصر">
+        </div>
+        <div class="field">
+          <label>رقم التليفون 1</label>
+          <input type="tel" id="custPhone1" placeholder="01000000000" required>
+        </div>
+        <div class="field">
+          <label>رقم التليفون 2</label>
+          <input type="tel" id="custPhone2" placeholder="01100000000">
+        </div>
+        <div class="field">
+          <label>نوع العملية</label>
+          <input type="text" id="operationType" placeholder="تكميم معدة / فتق...">
+        </div>
+        <div class="field">
+          <label>المستشفى</label>
+          <input type="text" id="hospital" placeholder="مستشفى الشفاء">
+        </div>
+        <div class="field">
+          <label>المحافظة</label>
+          <input type="text" id="governorate" placeholder="القاهرة">
+        </div>
+        <div class="field">
+          <label>كارت إيليت</label>
+          <select id="eliteCard">
+            <option value="بدون كارت">بدون كارت</option>
+            <option value="بكارت إيليت">بكارت إيليت</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>تاريخ العملية</label>
+          <input type="date" id="opDate">
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label>سعر العملية الكامل (ج.م)</label>
+          <input type="number" id="totalPrice" value="50000" required>
+        </div>
+        <div class="field">
+          <label>المبلغ المدفوع مبدئياً / مقدم (ج.م)</label>
+          <input type="number" id="paidPrice" value="20000" required>
+        </div>
+        <div class="field">
+          <label>طريقة الدفع الأساسية</label>
+          <select id="paymentType" onchange="handlePaymentTypeChange()">
+            <option value="cash">كاش بالكامل</option>
+            <option value="installment" selected>قسط معنا (مباشر)</option>
+            <option value="company">قسط شركة خارجية</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Guarantor Section -->
+      <div id="guarantorBox" class="guarantor-section">
+        <div style="font-weight: bold; color: var(--success); margin-bottom: 12px;">🤝 بيانات الضامن الشخصي:</div>
+        <div class="grid">
+          <div class="field"><label>اسم الضامن</label><input type="text" id="gName"></div>
+          <div class="field"><label>الرقم القومي للضامن</label><input type="text" id="gId"></div>
+          <div class="field"><label>عنوان الضامن</label><input type="text" id="gAddress"></div>
+          <div class="field"><label>تليفون الضامن</label><input type="tel" id="gPhone"></div>
+        </div>
+      </div>
+
+      <!-- Company Section -->
+      <div id="companyBox" class="company-section">
+        <div style="font-weight: bold; color: #b45309; margin-bottom: 12px;">🏢 بيانات شركة التقسيط الخارجي:</div>
+        <div class="grid">
+          <div class="field">
+            <label>اسم شركة التقسيط</label>
+            <input type="text" id="companyName" placeholder="مثال: فاليو، أمان، كاشسو...">
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <button type="submit" id="saveBtn" class="btn">💾 حفظ العميل وترحيله أونلاين</button>
+        <button type="button" id="cancelEditBtn" class="btn btn-print" style="display: none;" onclick="cancelEdit()">إلغاء التعديل</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Directory Table -->
+  <div class="card">
+    <div class="card-title">👥 قائمة العملاء المسجلين</div>
+    <table>
+      <thead>
+        <tr>
+          <th>الكود</th>
+          <th>اسم العميل</th>
+          <th>التليفون</th>
+          <th>نوع العملية</th>
+          <th>الإجمالي / المتبقي</th>
+          <th>كارت إيليت</th>
+          <th>طريقة الدفع / الشركة</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="customersTableBody">
+        <!-- Filled by JS -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Account Details -->
+<div id="customerModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 id="modalTitle" style="color: var(--primary);">كشف حساب العميل</h3>
+      <button onclick="closeModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    
+    <div id="modalSummary" style="background: #e0f2fe; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-weight: bold;">
+      <!-- Summary details -->
+    </div>
+
+    <!-- Add Installment Area -->
+    <div id="installmentsArea" style="margin-bottom: 16px;">
+      <div style="background: #fff8f1; padding: 12px; border-radius: 8px; border: 1px solid #ffedd5;">
+        <div style="font-weight: bold; margin-bottom: 8px; color: #b45309;">➕ تسجيل قسط / دفعة جديدة لهذا العميل:</div>
+        <div class="grid" style="margin-bottom: 8px;">
+          <div class="field">
+            <label>مبلغ القسط (ج.م)</label>
+            <input type="number" id="instAmount" placeholder="مثال: 5000">
+          </div>
+          <div class="field">
+            <label>تاريخ دفع القسط</label>
+            <input type="date" id="instDate">
+          </div>
+        </div>
+        <button class="btn" style="background: var(--success);" onclick="addInstallmentToCurrentCustomer()">✅ تسجيل القسط وخصمه من المتبقي</button>
+      </div>
+    </div>
+
+    <div style="font-weight: bold; margin-bottom: 8px;">📜 سجل الدفعات والأقساط المسجلة:</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>تاريخ الدفع</th>
+          <th>المبلغ المدفوع</th>
+          <th>البيان</th>
+        </tr>
+      </thead>
+      <tbody id="modalHistoryBody">
+        <!-- History items -->
+      </tbody>
+    </table>
+
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+      <button class="btn btn-print" onclick="printCustomerReceipt()">🖨️ طباعة إيصال / كشف حساب تفصيلي</button>
+    </div>
+  </div>
+</div>
+
+<!-- Printable Section Template -->
+<div id="printReceiptArea" style="display: none;">
+  <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 15px;">
+    <img src="logo.png" alt="Logo" style="width:70px; height:70px; border-radius:50%;" onerror="this.style.display='none'">
+    <div>
+      <h2 style="margin:0;"> د. بهاء شكري - Dr. Bahaa Shoukry</h2>
+      <p style="margin:2px 0;">استشاري جراحات السمنة والمناظير</p>
+      <p id="pDate" style="margin-top: 5px; font-size: 0.9rem;"></p>
+    </div>
+  </div>
+  <div id="pContent"></div>
+</div>
+
+<script>
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8IeJUoO4v_Ao6H58NcnciYo_aMtTte2j-6UxlXMRLAAVX9G7MBNTS56hgsgdC96Eseg/exec";
+
+  let customersList = [];
+  let currentActiveIndex = null;
+
+  function handlePaymentTypeChange() {
+    const type = document.getElementById('paymentType').value;
+    document.getElementById('guarantorBox').style.display = (type === 'installment') ? 'block' : 'none';
+    document.getElementById('companyBox').style.display = (type === 'company') ? 'block' : 'none';
+  }
+  handlePaymentTypeChange();
+
+  function saveAndSync() {
+    let editIdx = parseInt(document.getElementById('editIndex').value);
+
+    let code = document.getElementById('custCode').value;
+    let name = document.getElementById('custName').value;
+    let phone = document.getElementById('custPhone1').value;
+    let nationalId = document.getElementById('custNationalId').value;
+    let type = document.getElementById('operationType').value || 'عملية جراحية';
+    let hospital = document.getElementById('hospital').value;
+    let gov = document.getElementById('governorate').value;
+    let elite = document.getElementById('eliteCard').value;
+    let company = document.getElementById('companyName').value || '';
+    let total = parseFloat(document.getElementById('totalPrice').value) || 0;
+    let initialPaid = parseFloat(document.getElementById('paidPrice').value) || 0;
+    let payType = document.getElementById('paymentType').value;
+
+    let opDate = document.getElementById('opDate').value || new Date().toISOString().split('T')[0];
+
+    let formData = {
+      code, name, phone1: phone, nationalId, operationType: type,
+      hospital, governorate: gov, eliteCard: elite, paymentType: payType,
+      company, totalPrice: total, paidPrice: initialPaid, remaining: total - initialPaid, date: opDate
+    };
+
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
+
+    if(editIdx >= 0) {
+      customersList[editIdx].code = code;
+      customersList[editIdx].name = name;
+      customersList[editIdx].phone = phone;
+      customersList[editIdx].nationalId = nationalId;
+      customersList[editIdx].type = type;
+      customersList[editIdx].hospital = hospital;
+      customersList[editIdx].gov = gov;
+      customersList[editIdx].elite = elite;
+      customersList[editIdx].company = company;
+      customersList[editIdx].total = total;
+      customersList[editIdx].initialPaid = initialPaid;
+      customersList[editIdx].payType = payType;
+      alert("✅ تم تعديل بيانات العميل بنجاح وترحيلها لشيت جوجل!");
+    } else {
+      let history = [
+        { date: opDate, amount: initialPaid, type: payType === 'cash' ? 'دفعة كاش كاملة' : 'مقدم العملية' }
+      ];
+      customersList.push({ code, name, phone, nationalId, type, hospital, gov, elite, company, total, initialPaid, payType, history });
+      alert("✅ تم حفظ العميل وإضافته للقائمة بنجاح!");
+    }
+
+    renderTable(customersList);
+    cancelEdit();
+  }
+
+  function editCustomer(index) {
+    let c = customersList[index];
+    document.getElementById('editIndex').value = index;
+    document.getElementById('formTitle').innerText = `✏️ تعديل بيانات العميل (${c.name})`;
+    document.getElementById('saveBtn').innerText = "💾 حفظ التعديلات أونلاين";
+    document.getElementById('cancelEditBtn').style.display = "inline-block";
+
+    document.getElementById('custCode').value = c.code;
+    document.getElementById('custName').value = c.name;
+    document.getElementById('custPhone1').value = c.phone;
+    document.getElementById('custNationalId').value = c.nationalId || '';
+    document.getElementById('operationType').value = c.type;
+    document.getElementById('hospital').value = c.hospital || '';
+    document.getElementById('governorate').value = c.gov || '';
+    document.getElementById('eliteCard').value = c.elite;
+    document.getElementById('paymentType').value = c.payType;
+    document.getElementById('companyName').value = c.company || '';
+    document.getElementById('totalPrice').value = c.total;
+    document.getElementById('paidPrice').value = c.initialPaid;
+
+    handlePaymentTypeChange();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    document.getElementById('editIndex').value = "-1";
+    document.getElementById('formTitle').innerText = "📝 1. تسجيل عميل جديد";
+    document.getElementById('saveBtn').innerText = "💾 حفظ العميل وترحيله أونلاين";
+    document.getElementById('cancelEditBtn').style.display = "none";
+    document.getElementById('customerForm').reset();
+    handlePaymentTypeChange();
+  }
+
+  function renderTable(data) {
+    let tbody = document.getElementById('customersTableBody');
+    tbody.innerHTML = '';
+    
+    if(!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8;">لا توجد بيانات مسجلة حالياً</td></tr>';
+      return;
+    }
+
+    data.forEach((c, index) => {
+      let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
+      let remaining = c.total - totalPaid;
+      
+      let badge = '<span class="badge badge-cash">كاش</span>';
+      if(c.payType === 'installment') badge = '<span class="badge badge-installments">قسط مباشر</span>';
+      if(c.payType === 'company') badge = `<span class="badge badge-company">قسط شركة (${c.company || 'خارجية'})</span>`;
+
+      tbody.innerHTML += `<tr>
+        <td><b>${c.code}</b></td>
+        <td>${c.name}</td>
+        <td>${c.phone}</td>
+        <td>${c.type}</td>
+        <td>${c.total.toLocaleString()} / <span style="color:${remaining>0?'var(--danger)':'var(--success)'}">${remaining.toLocaleString()} ج.م</span></td>
+        <td>${c.elite}</td>
+        <td>${badge}</td>
+        <td>
+          <button class="btn" style="padding: 5px 10px; font-size: 0.8rem;" onclick="openCustomerModal(${index})">📂 الحساب</button>
+          <button class="btn btn-edit" style="padding: 5px 10px; font-size: 0.8rem; margin-top: 4px;" onclick="editCustomer(${index})">✏️ تعديل</button>
+        </td>
+      </tr>`;
+    });
+  }
+
+  function openCustomerModal(index) {
+    currentActiveIndex = index;
+    let c = customersList[index];
+    let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
+    let remaining = c.total - totalPaid;
+
+    let payTypeTitle = c.payType === 'cash' ? 'كاش بالكامل' : (c.payType === 'company' ? `قسط شركة (${c.company})` : 'قسط مباشر معنا');
+
+    document.getElementById('modalTitle').innerText = `كشف حساب العميل: ${c.name} (${c.code})`;
+    document.getElementById('modalSummary').innerHTML = `
+      نظام الدفع: <b>${payTypeTitle}</b> | 
+      إجمالي سعر العملية: ${c.total.toLocaleString()} ج.م | 
+      إجمالي المدفوع: <span style="color:var(--success)">${totalPaid.toLocaleString()} ج.م</span> | 
+      المتبقي: <span style="color:var(--danger)">${remaining.toLocaleString()} ج.م</span>
+    `;
+
+    document.getElementById('installmentsArea').style.display = (c.payType === 'cash') ? 'none' : 'block';
+
+    let historyBody = document.getElementById('modalHistoryBody');
+    historyBody.innerHTML = '';
+    if(c.history) {
+      c.history.forEach((h, i) => {
+        historyBody.innerHTML += `<tr>
+          <td>${i+1}</td>
+          <td>${h.date}</td>
+          <td>${h.amount.toLocaleString()} ج.م</td>
+          <td>${h.type}</td>
+        </tr>`;
+      });
+    }
+
+    document.getElementById('customerModal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('customerModal').style.display = 'none';
+    renderTable(customersList);
+  }
+
+  function addInstallmentToCurrentCustomer() {
+    let amount = parseFloat(document.getElementById('instAmount').value);
+    let date = document.getElementById('instDate').value;
+
+    if(!amount || amount <= 0 || !date) {
+      alert('برجاء كتابة مبلغ القسط وتاريخ الدفع الصحيح');
+      return;
+    }
+
+    if(!customersList[currentActiveIndex].history) customersList[currentActiveIndex].history = [];
+    customersList[currentActiveIndex].history.push({ date: date, amount: amount, type: 'قسط مسدد' });
+    document.getElementById('instAmount').value = '';
+    document.getElementById('instDate').value = '';
+    
+    openCustomerModal(currentActiveIndex);
+    alert('✅ تمت إضافة القسط وخصمه من الحساب بنجاح!');
+  }
+
+  function printCustomerReceipt() {
+    let c = customersList[currentActiveIndex];
+    let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
+    let remaining = c.total - totalPaid;
+
+    let historyRows = '';
+    if(c.history) {
+      c.history.forEach((h, i) => {
+        historyRows += `<tr>
+          <td style="border:1px solid #ccc; padding:8px;">${i+1}</td>
+          <td style="border:1px solid #ccc; padding:8px;">${h.date}</td>
+          <td style="border:1px solid #ccc; padding:8px;">${h.amount.toLocaleString()} ج.م</td>
+          <td style="border:1px solid #ccc; padding:8px;">${h.type}</td>
+        </tr>`;
+      });
+    }
+
+    let payText = c.payType === 'cash' ? 'كاش بالكامل' : (c.payType === 'company' ? `قسط شركة (${c.company})` : 'قسط مباشر معنا');
+
+    let printHTML = `
+      <div style="font-size:1.1rem; line-height:1.8; color:#000;">
+        <p><b>كود العميل:</b> ${c.code}</p>
+        <p><b>اسم العميل:</b> ${c.name}</p>
+        <p><b>رقم التليفون:</b> ${c.phone} | <b>الرقم القومي:</b> ${c.nationalId || '-'}</p>
+        <p><b>نوع العملية:</b> ${c.type} | <b>المستشفى:</b> ${c.hospital || '-'} (${c.gov || '-'})</p>
+        <p><b>كارت إيليت:</b> ${c.elite} | <b>نظام الدفع:</b> ${payText}</p>
+        <hr style="margin:15px 0; border:1px solid #000;">
+    `;
+
+    if(c.payType === 'cash') {
+      printHTML += `
+        <h3>تفاصيل المدفوعات (حالة كاش):</h3>
+        <p style="font-size:1.2rem;"><b>إجمالي مبلغ العملية المسدد بالكامل:</b> ${c.total.toLocaleString()} ج.م</p>
+        <p style="color:green; font-weight:bold;">الحساب خالص بالكامل ولا يوجد أي متبقي.</p>
+      `;
+    } else {
+      printHTML += `
+        <h3>تفاصيل الأقساط والماليات:</h3>
+        <p><b>إجمالي سعر العملية:</b> ${c.total.toLocaleString()} ج.م</p>
+        <p><b>إجمالي المبالغ المدفوعة حتى الآن:</b> ${totalPaid.toLocaleString()} ج.م</p>
+        <p style="font-size:1.2rem; color:red;"><b>المتبقي للتحصيل:</b> ${remaining.toLocaleString()} ج.م</p>
+        
+        <h4 style="margin-top:15px;">جدول الأقساط والدفعات المسددة بالتواريخ:</h4>
+        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+          <thead>
+            <tr style="background:#f1f5f9;">
+              <th style="border:1px solid #000; padding:8px;">#</th>
+              <th style="border:1px solid #000; padding:8px;">تاريخ الدفع</th>
+              <th style="border:1px solid #000; padding:8px;">المبلغ</th>
+              <th style="border:1px solid #000; padding:8px;">البيان</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${historyRows}
+          </tbody>
+        </table>
+      `;
+    }
+
+    printHTML += `</div>`;
+
+    document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
+    document.getElementById('pContent').innerHTML = printHTML;
+
+    document.getElementById('printReceiptArea').style.display = 'block';
+    window.print();
+    document.getElementById('printReceiptArea').style.display = 'none';
+  }
+
+  function searchCustomer() {
+    let query = document.getElementById('searchInput').value.trim().toLowerCase();
+    if(!query) {
+      renderTable(customersList);
+      return;
+    }
+    let filtered = customersList.filter(c => 
+      c.name.toLowerCase().includes(query) || 
+      c.phone.includes(query) || 
+      (c.nationalId && c.nationalId.includes(query))
+    );
+    renderTable(filtered);
+  }
+
+  function filterCustomers() {
+    let filter = document.getElementById('statusFilter').value;
+    if(filter === 'all') {
+      renderTable(customersList);
+    } else {
+      renderTable(customersList.filter(c => c.payType === filter));
+    }
+  }
+</script>
+</body>
+</html>
