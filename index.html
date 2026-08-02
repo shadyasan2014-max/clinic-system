@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام إدارة العملاء - د. بهاء شكري</title>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --primary: #0e7490;
@@ -106,7 +108,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة وتخزين بيانات العملاء  </p>
+        <p>نظام إدارة وتخزين بيانات العملاء </p>
       </div>
     </div>
     <div style="font-size: 0.85rem; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px;">
@@ -116,7 +118,10 @@
 
   <!-- Search & Filter Card -->
   <div class="card" style="background: #f1f5f9;">
-    <div class="card-title" style="border-color: #cbd5e1;">🔍 البحث السريع وفلترة الحالات</div>
+    <div class="card-title" style="border-color: #cbd5e1; display:flex; justify-content:space-between; align-items:center;">
+      <span>🔍 البحث السريع وفلترة الحالات</span>
+      <button onclick="fetchDataFromSupabase()" class="btn" style="width:auto; padding:4px 12px; font-size:0.8rem; background:#475569;">🔄 تحديث البيانات</button>
+    </div>
     <div class="grid">
       <div class="field">
         <label>ابحث باسم العميل، التليفون، أو الرقم القومي</label>
@@ -142,7 +147,7 @@
     <div class="card">
       <div class="card-title" id="formTitle">📝 1. تسجيل عميل جديد</div>
       
-      <input type="hidden" id="editIndex" value="-1">
+      <input type="hidden" id="editDbId" value="-1">
 
       <div class="grid">
         <div class="field">
@@ -193,7 +198,7 @@
           <input type="date" id="opDate">
         </div>
         <div class="field">
-          <label>📷 صورة بطاقة العميل (وجهين/اختياري)</label>
+          <label>📷 صورة بطاقة العميل (اختياري)</label>
           <input type="file" id="custCardImg" accept="image/*" onchange="previewImg(this, 'custImgPrev')">
           <img id="custImgPrev" class="img-preview">
         </div>
@@ -246,7 +251,7 @@
       </div>
 
       <div style="display: flex; gap: 10px; margin-top: 16px;">
-        <button type="submit" id="saveBtn" class="btn">💾 حفظ العميل وترحيله أونلاين</button>
+        <button type="submit" id="saveBtn" class="btn">💾 حفظ العميل أونلاين</button>
         <button type="button" id="cancelEditBtn" class="btn btn-print" style="display: none;" onclick="cancelEdit()">إلغاء التعديل</button>
       </div>
     </div>
@@ -269,7 +274,7 @@
         </tr>
       </thead>
       <tbody id="customersTableBody">
-        <!-- Filled by JS -->
+        <tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري سحب البيانات أونلاين من السحابة...</td></tr>
       </tbody>
     </table>
   </div>
@@ -342,19 +347,38 @@
 </div>
 
 <script>
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8IeJUoO4v_Ao6H58NcnciYo_aMtTte2j-6UxlXMRLAAVX9G7MBNTS56hgsgdC96Eseg/exec";
+  // 🔗 Supabase Configuration
+  const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // استدعاء البيانات تلقائياً من الذاكرة الحافظة للمتصفح أول ما تفتح الصفحة
-  let customersList = JSON.parse(localStorage.getItem('bahaa_clinic_data')) || [];
+  let customersList = [];
   let currentActiveIndex = null;
-
   let currentCustImg = "";
   let currentGuarantorImg = "";
 
   window.onload = function() {
     handlePaymentTypeChange();
-    renderTable(customersList);
+    fetchDataFromSupabase();
   };
+
+  async function fetchDataFromSupabase() {
+    let tbody = document.getElementById('customersTableBody');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب وسحب البيانات المسجلة أونلاين...</td></tr>';
+
+    const { data, error } = await supabaseClient.from('customers').select('*').order('id', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب من السحابة، برجاء التأكد من الاتصال.</td></tr>';
+    } else {
+      customersList = data.map(item => ({
+        dbId: item.id,
+        ...item.data
+      }));
+      renderTable(customersList);
+    }
+  }
 
   function previewImg(input, targetId) {
     if (input.files && input.files[0]) {
@@ -375,8 +399,8 @@
     document.getElementById('companyBox').style.display = (type === 'company') ? 'block' : 'none';
   }
 
-  function saveAndSync() {
-    let editIdx = parseInt(document.getElementById('editIndex').value);
+  async function saveAndSync() {
+    let editDbId = parseInt(document.getElementById('editDbId').value);
 
     let code = document.getElementById('custCode').value;
     let name = document.getElementById('custName').value;
@@ -390,69 +414,42 @@
     let total = parseFloat(document.getElementById('totalPrice').value) || 0;
     let initialPaid = parseFloat(document.getElementById('paidPrice').value) || 0;
     let payType = document.getElementById('paymentType').value;
-
     let opDate = document.getElementById('opDate').value || new Date().toISOString().split('T')[0];
 
-    // بيانات الضامن
     let gName = document.getElementById('gName').value || '';
     let gId = document.getElementById('gId').value || '';
     let gPhone = document.getElementById('gPhone').value || '';
 
-    let formData = {
-      code, name, phone1: phone, nationalId, operationType: type,
-      hospital, governorate: gov, eliteCard: elite, paymentType: payType,
-      company, totalPrice: total, paidPrice: initialPaid, remaining: total - initialPaid, date: opDate
+    let customerPayload = {
+      code, name, phone, nationalId, type, hospital, gov, elite, company, total, initialPaid, payType,
+      gName, gId, gPhone,
+      custImg: currentCustImg,
+      gImg: currentGuarantorImg
     };
 
-    // إرسال البيانات أونلاين لجوجل شيت
-    fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
-    });
+    if(editDbId > 0) {
+      let activeCust = customersList.find(c => c.dbId === editDbId);
+      customerPayload.history = activeCust.history || [];
+      if(!currentCustImg) customerPayload.custImg = activeCust.custImg || "";
+      if(!currentGuarantorImg) customerPayload.gImg = activeCust.gImg || "";
 
-    if(editIdx >= 0) {
-      customersList[editIdx].code = code;
-      customersList[editIdx].name = name;
-      customersList[editIdx].phone = phone;
-      customersList[editIdx].nationalId = nationalId;
-      customersList[editIdx].type = type;
-      customersList[editIdx].hospital = hospital;
-      customersList[editIdx].gov = gov;
-      customersList[editIdx].elite = elite;
-      customersList[editIdx].company = company;
-      customersList[editIdx].total = total;
-      customersList[editIdx].initialPaid = initialPaid;
-      customersList[editIdx].payType = payType;
-      customersList[editIdx].gName = gName;
-      customersList[editIdx].gId = gId;
-      customersList[editIdx].gPhone = gPhone;
-      if(currentCustImg) customersList[editIdx].custImg = currentCustImg;
-      if(currentGuarantorImg) customersList[editIdx].gImg = currentGuarantorImg;
-
-      alert("✅ تم تعديل بيانات العميل بنجاح وترحيلها!");
+      const { error } = await supabaseClient.from('customers').update({ data: customerPayload }).eq('id', editDbId);
+      if(!error) alert("✅ تم تعديل بيانات العميل أونلاين بنجاح!");
     } else {
-      let history = [
+      customerPayload.history = [
         { date: opDate, amount: initialPaid, type: payType === 'cash' ? 'دفعة كاش كاملة' : 'مقدم العملية' }
       ];
-      customersList.push({ 
-        code, name, phone, nationalId, type, hospital, gov, elite, company, total, initialPaid, payType, history,
-        gName, gId, gPhone, custImg: currentCustImg, gImg: currentGuarantorImg 
-      });
-      alert("✅ تم حفظ العميل وإضافته للقائمة بنجاح!");
+      const { error } = await supabaseClient.from('customers').insert([{ data: customerPayload }]);
+      if(!error) alert("✅ تم حفظ العميل أونلاين بنجاح!");
     }
 
-    // حفظ في ذاكرة المتصفح للعمل بدون انقطاع
-    localStorage.setItem('bahaa_clinic_data', JSON.stringify(customersList));
-
-    renderTable(customersList);
     cancelEdit();
+    fetchDataFromSupabase();
   }
 
   function editCustomer(index) {
     let c = customersList[index];
-    document.getElementById('editIndex').value = index;
+    document.getElementById('editDbId').value = c.dbId;
     document.getElementById('formTitle').innerText = `✏️ تعديل بيانات العميل (${c.name})`;
     document.getElementById('saveBtn').innerText = "💾 حفظ التعديلات أونلاين";
     document.getElementById('cancelEditBtn').style.display = "inline-block";
@@ -488,9 +485,9 @@
   }
 
   function cancelEdit() {
-    document.getElementById('editIndex').value = "-1";
+    document.getElementById('editDbId').value = "-1";
     document.getElementById('formTitle').innerText = "📝 1. تسجيل عميل جديد";
-    document.getElementById('saveBtn').innerText = "💾 حفظ العميل وترحيله أونلاين";
+    document.getElementById('saveBtn').innerText = "💾 حفظ العميل أونلاين";
     document.getElementById('cancelEditBtn').style.display = "none";
     document.getElementById('customerForm').reset();
     document.getElementById('custImgPrev').style.display = 'none';
@@ -572,7 +569,7 @@
     renderTable(customersList);
   }
 
-  function addInstallmentToCurrentCustomer() {
+  async function addInstallmentToCurrentCustomer() {
     let amount = parseFloat(document.getElementById('instAmount').value);
     let date = document.getElementById('instDate').value;
 
@@ -581,17 +578,23 @@
       return;
     }
 
-    if(!customersList[currentActiveIndex].history) customersList[currentActiveIndex].history = [];
-    customersList[currentActiveIndex].history.push({ date: date, amount: amount, type: 'قسط مسدد' });
-    
-    // حفظ التحديث
-    localStorage.setItem('bahaa_clinic_data', JSON.stringify(customersList));
+    let c = customersList[currentActiveIndex];
+    if(!c.history) c.history = [];
+    c.history.push({ date: date, amount: amount, type: 'قسط مسدد' });
+
+    let dbId = c.dbId;
+    delete c.dbId; // مؤقتاً للتحديث
+
+    const { error } = await supabaseClient.from('customers').update({ data: c }).eq('id', dbId);
 
     document.getElementById('instAmount').value = '';
     document.getElementById('instDate').value = '';
     
-    openCustomerModal(currentActiveIndex);
-    alert('✅ تمت إضافة القسط وخصمه من الحساب بنجاح!');
+    if(!error) {
+      alert('✅ تمت إضافة القسط وخصمه أونلاين بنجاح!');
+      fetchDataFromSupabase();
+      closeModal();
+    }
   }
 
   function printCustomerReceipt() {
