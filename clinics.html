@@ -92,9 +92,9 @@
 
   /* Modal Styles */
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
-  .modal-content { background: white; padding: 26px; border-radius: 14px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .modal-content { background: white; padding: 26px; border-radius: 14px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
   
-  .followup-fields { background-color: #f0fdf4; border: 1px dashed #86efac; padding: 16px; border-radius: 8px; margin-top: 12px; display: none; }
+  .followup-fields { background-color: #f0fdf4; border: 1px dashed #86efac; padding: 16px; border-radius: 8px; margin-top: 12px; }
   .img-preview { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; display: none; background: #f8fafc; }
 
   .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -157,7 +157,9 @@
 
   <!-- Add New Appointment Form -->
   <div class="card">
-    <div class="card-title">➕ إضافة حجز مريض جديد للعيادة والتاريخ المحددين أعلاه</div>
+    <div class="card-title" id="bookingFormTitle">➕ إضافة حجز مريض جديد للعيادة والتاريخ المحددين أعلاه</div>
+    <input type="hidden" id="editingDbId" value="-1">
+    
     <div class="grid">
       <div class="field">
         <label>اسم المريض بالكامل</label>
@@ -173,18 +175,28 @@
       </div>
       <div class="field">
         <label>نوع الزيارة / الحجز</label>
-        <select id="bookingVisitType" onchange="toggleOtherTypeInput()">
+        <select id="bookingVisitType" onchange="toggleBookingVisitFields()">
           <option value="كشف جديد">كشف جديد</option>
           <option value="متابعة">متابعة</option>
           <option value="أخرى">أخرى (تحديد بيان)</option>
         </select>
       </div>
+
+      <div class="field" id="bookingSurgeryDateBox" style="display: none;">
+        <label style="color: var(--success);">📅 تاريخ إجراء العملية</label>
+        <input type="date" id="bookingSurgeryDate">
+      </div>
+
       <div class="field" id="otherTypeBox" style="display: none;">
         <label style="color: var(--secondary);">حدد نوع الزيارة الأُخرى</label>
         <input type="text" id="otherTypeDetail" placeholder="مثال: جلسة غيار، استشارة...">
       </div>
     </div>
-    <button class="btn" style="width: 100%; margin-top: 8px;" onclick="addAppointment()">💾 حفظ الحجز في اليومية أونلاين</button>
+
+    <div style="display: flex; gap: 10px; margin-top: 8px;">
+      <button class="btn" id="saveBookingBtn" style="flex: 1;" onclick="addOrUpdateAppointment()">💾 حفظ الحجز أونلاين</button>
+      <button class="btn btn-secondary" id="cancelBookingEditBtn" style="display: none;" onclick="resetBookingForm()">إلغاء التعديل</button>
+    </div>
   </div>
 
   <!-- Appointments Table -->
@@ -203,7 +215,7 @@
           <th>اسم المريض</th>
           <th>أرقام التليفون</th>
           <th>التاريخ والفرع</th>
-          <th>نوع الزيارة</th>
+          <th>نوع الزيارة / تاريخ العملية</th>
           <th>مبلغ التحصيل</th>
           <th>حالة الحضور</th>
           <th>الإجراءات والعمليات</th>
@@ -251,21 +263,31 @@
   </div>
 </div>
 
-<!-- Check-in & Edit Modal -->
+<!-- Check-in & Comprehensive Edit Modal -->
 <div id="checkInModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 id="modalTitle" style="color: var(--primary);">✅ تأكيد حضور / تعديل الزيارة: <span id="modalPatientName"></span></h3>
+      <h3 id="modalTitle" style="color: var(--primary);">✅ تأكيد حضور / تعديل بيانات الزيارة الكاملة</h3>
       <button onclick="closeModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
 
-    <div class="field" style="margin-bottom: 16px;">
-      <label>تأكيد / تعديل نوع الزيارة:</label>
-      <select id="modalVisitType" onchange="toggleFollowUpFields()">
-        <option value="كشف جديد">كشف جديد</option>
-        <option value="متابعة">متابعة (بعد العملية)</option>
-        <option value="أخرى">أخرى</option>
-      </select>
+    <div class="grid">
+      <div class="field">
+        <label>اسم المريض</label>
+        <input type="text" id="modalPatientName">
+      </div>
+      <div class="field">
+        <label>رقم التليفون 1</label>
+        <input type="tel" id="modalPhone1">
+      </div>
+      <div class="field">
+        <label>نوع الزيارة</label>
+        <select id="modalVisitType" onchange="toggleModalFollowUpFields()">
+          <option value="كشف جديد">كشف جديد</option>
+          <option value="متابعة">متابعة (بعد العملية)</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </div>
     </div>
 
     <!-- Financial Section -->
@@ -285,21 +307,21 @@
       </div>
     </div>
 
-    <!-- Follow Up Specific Fields (Surgery Date) -->
-    <div id="followUpFields" class="followup-fields">
-      <div style="font-weight: bold; margin-bottom: 10px; color: var(--success);">🩺 تفاصيل تاريخ العملية (للمتابعة):</div>
+    <!-- Follow Up Specific Fields (Surgery Details & Date) -->
+    <div id="modalFollowUpFields" class="followup-fields">
+      <div style="font-weight: bold; margin-bottom: 10px; color: var(--success);">🩺 تفاصيل وتاريخ العملية (خاص بالمتابعة):</div>
       <div class="grid" style="margin-bottom: 0;">
         <div class="field">
-          <label>تاريخ إجراء العملية</label>
-          <input type="date" id="surgeryDate">
+          <label>📅 تاريخ إجراء العملية</label>
+          <input type="date" id="modalSurgeryDate">
         </div>
         <div class="field">
           <label>نوع العملية</label>
-          <input type="text" id="surgeryType" placeholder="تكميم، تحويل مسار...">
+          <input type="text" id="modalSurgeryType" placeholder="تكميم، تحويل مسار...">
         </div>
         <div class="field">
           <label>المستشفى</label>
-          <input type="text" id="hospitalName" placeholder="اسم المستشفى">
+          <input type="text" id="modalHospitalName" placeholder="اسم المستشفى">
         </div>
       </div>
     </div>
@@ -317,7 +339,7 @@
       <img id="paperImgPrev" class="img-preview">
     </div>
 
-    <button class="btn btn-success" style="width: 100%; margin-top: 20px;" onclick="confirmCheckIn()">💾 حفظ البيانات والروشتة أونلاين</button>
+    <button class="btn btn-success" style="width: 100%; margin-top: 20px;" onclick="confirmCheckIn()">💾 حفظ وتحديث البيانات أونلاين</button>
   </div>
 </div>
 
@@ -419,9 +441,10 @@
     }
   }
 
-  function toggleOtherTypeInput() {
+  function toggleBookingVisitFields() {
     let type = document.getElementById('bookingVisitType').value;
     document.getElementById('otherTypeBox').style.display = (type === 'أخرى') ? 'flex' : 'none';
+    document.getElementById('bookingSurgeryDateBox').style.display = (type === 'متابعة') ? 'flex' : 'none';
   }
 
   function filterAppointments() {
@@ -457,27 +480,19 @@
           : `<span class="price-badge">${parseFloat(app.fee || 0).toLocaleString()} ج.م</span>`;
       }
 
-      let actionBtns = '';
-
-      if(app.status === 'pending') {
-        actionBtns = `
-          <div class="action-btns">
-            <button class="btn btn-success" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✅ حضور ورفع روشتة</button>
-            <button class="btn btn-danger" style="padding: 5px 10px; font-size:0.8rem;" onclick="cancelAppointment(${app.dbId})">❌ إلغاء الحجز</button>
-          </div>
-        `;
-      } else if(app.status === 'done') {
-        actionBtns = `
-          <div class="action-btns">
-            ${app.paperImg ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` : ''}
-            <button class="btn btn-warning" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل الزيارة</button>
-          </div>
-        `;
-      } else {
-        actionBtns = `
-          <button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="restoreAppointment(${app.dbId})">🔄 إعادة تفعيل الحجز</button>
-        `;
+      let visitTypeDisplay = app.visitType;
+      if(app.visitType === 'متابعة' && app.surgeryDate) {
+        visitTypeDisplay += `<br><small style="color:#15803d; font-weight:bold;">العملية: ${app.surgeryDate}</small>`;
       }
+
+      let actionBtns = `
+        <div class="action-btns">
+          ${app.status === 'pending' ? `<button class="btn btn-success" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✅ حضور ورفع روشتة</button>` : ''}
+          ${app.paperImg ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` : ''}
+          <button class="btn btn-warning" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل كامل</button>
+          ${app.status !== 'cancelled' ? `<button class="btn btn-danger" style="padding: 5px 10px; font-size:0.8rem;" onclick="cancelAppointment(${app.dbId})">❌ إلغاء</button>` : `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="restoreAppointment(${app.dbId})">🔄 تفعيل</button>`}
+        </div>
+      `;
 
       tbody.innerHTML += `
         <tr>
@@ -485,7 +500,7 @@
           <td><b>${app.name}</b></td>
           <td>${phonesHtml}</td>
           <td>${app.clinic}<br><small style="color:#64748b;">${app.date}</small></td>
-          <td><span class="visit-badge">${app.visitType}</span></td>
+          <td><span class="visit-badge">${visitTypeDisplay}</span></td>
           <td>${feeHtml}</td>
           <td>${statusHtml}</td>
           <td>${actionBtns}</td>
@@ -494,7 +509,9 @@
     });
   }
 
-  async function addAppointment() {
+  async function addOrUpdateAppointment() {
+    let editDbId = parseInt(document.getElementById('editingDbId').value);
+
     let name = document.getElementById('patientName').value.trim();
     let phone1 = document.getElementById('patientPhone1').value.trim();
     let phone2 = document.getElementById('patientPhone2').value.trim();
@@ -509,22 +526,45 @@
       visitType = detail ? `أخرى (${detail})` : 'أخرى';
     }
 
+    let surgeryDate = (visitSelect === 'متابعة') ? document.getElementById('bookingSurgeryDate').value : '';
+
     if(!name || !phone1) return alert("برجاء إدخال الاسم ورقم التليفون الرئيسي على الأقل");
 
-    let payload = { name, phone1, phone2, clinic, date, visitType, status: "pending", paperImg: "", notes: "", surgeryType: "", surgeryDate: "", hospitalName: "", fee: 0, isFree: false };
+    if(editDbId > 0) {
+      let existingApp = allAppointments.find(a => a.dbId === editDbId);
+      let updatedPayload = { ...existingApp, name, phone1, phone2, clinic, date, visitType, surgeryDate };
+      delete updatedPayload.dbId;
 
-    const { error } = await supabaseClient.from('appointments').insert([{ data: payload }]);
-
-    if(!error) {
-      alert("✅ تم حفظ الحجز أونلاين بنجاح!");
-      document.getElementById('patientName').value = '';
-      document.getElementById('patientPhone1').value = '';
-      document.getElementById('patientPhone2').value = '';
-      document.getElementById('bookingVisitType').value = 'كشف جديد';
-      document.getElementById('otherTypeDetail').value = '';
-      toggleOtherTypeInput();
-      fetchAppointmentsFromSupabase();
+      const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', editDbId);
+      if(!error) {
+        alert("✅ تم تعديل بيانات الحجز أونلاين بنجاح!");
+        resetBookingForm();
+        fetchAppointmentsFromSupabase();
+      }
+    } else {
+      let payload = { name, phone1, phone2, clinic, date, visitType, surgeryDate, status: "pending", paperImg: "", notes: "", surgeryType: "", hospitalName: "", fee: 0, isFree: false };
+      const { error } = await supabaseClient.from('appointments').insert([{ data: payload }]);
+      if(!error) {
+        alert("✅ تم حفظ الحجز أونلاين بنجاح!");
+        resetBookingForm();
+        fetchAppointmentsFromSupabase();
+      }
     }
+  }
+
+  function resetBookingForm() {
+    document.getElementById('editingDbId').value = "-1";
+    document.getElementById('bookingFormTitle').innerText = "➕ إضافة حجز مريض جديد للعيادة والتاريخ المحددين أعلاه";
+    document.getElementById('saveBookingBtn').innerText = "💾 حفظ الحجز أونلاين";
+    document.getElementById('cancelBookingEditBtn').style.display = "none";
+    
+    document.getElementById('patientName').value = '';
+    document.getElementById('patientPhone1').value = '';
+    document.getElementById('patientPhone2').value = '';
+    document.getElementById('bookingVisitType').value = 'كشف جديد';
+    document.getElementById('otherTypeDetail').value = '';
+    document.getElementById('bookingSurgeryDate').value = '';
+    toggleBookingVisitFields();
   }
 
   async function cancelAppointment(dbId) {
@@ -641,7 +681,8 @@
     if(!app) return;
 
     currentUploadedImg = app.paperImg || "";
-    document.getElementById('modalPatientName').innerText = app.name;
+    document.getElementById('modalPatientName').value = app.name;
+    document.getElementById('modalPhone1').value = app.phone1;
     
     if(app.visitType.includes('متابعة')) {
       document.getElementById('modalVisitType').value = 'متابعة';
@@ -651,16 +692,16 @@
       document.getElementById('modalVisitType').value = 'كشف جديد';
     }
 
-    document.getElementById('surgeryType').value = app.surgeryType || '';
-    document.getElementById('surgeryDate').value = app.surgeryDate || '';
-    document.getElementById('hospitalName').value = app.hospitalName || '';
+    document.getElementById('modalSurgeryType').value = app.surgeryType || '';
+    document.getElementById('modalSurgeryDate').value = app.surgeryDate || '';
+    document.getElementById('modalHospitalName').value = app.hospitalName || '';
     document.getElementById('visitNotes').value = app.notes || '';
 
     document.getElementById('visitFee').value = app.fee || 0;
     document.getElementById('isFreeVisit').checked = !!app.isFree;
     handleFreeCheckbox();
 
-    toggleFollowUpFields();
+    toggleModalFollowUpFields();
 
     let prevImg = document.getElementById('paperImgPrev');
     if(app.paperImg) {
@@ -678,9 +719,9 @@
     document.getElementById('checkInModal').style.display = 'none';
   }
 
-  function toggleFollowUpFields() {
+  function toggleModalFollowUpFields() {
     let type = document.getElementById('modalVisitType').value;
-    document.getElementById('followUpFields').style.display = (type === 'متابعة') ? 'block' : 'none';
+    document.getElementById('modalFollowUpFields').style.display = (type === 'متابعة') ? 'block' : 'none';
   }
 
   function previewImg(input, targetId) {
@@ -702,11 +743,13 @@
       delete updatedPayload.dbId;
 
       updatedPayload.status = 'done';
+      updatedPayload.name = document.getElementById('modalPatientName').value.trim();
+      updatedPayload.phone1 = document.getElementById('modalPhone1').value.trim();
       updatedPayload.visitType = document.getElementById('modalVisitType').value;
       updatedPayload.notes = document.getElementById('visitNotes').value;
-      updatedPayload.surgeryType = document.getElementById('surgeryType').value;
-      updatedPayload.surgeryDate = document.getElementById('surgeryDate').value;
-      updatedPayload.hospitalName = document.getElementById('hospitalName').value;
+      updatedPayload.surgeryType = document.getElementById('modalSurgeryType').value;
+      updatedPayload.surgeryDate = document.getElementById('modalSurgeryDate').value;
+      updatedPayload.hospitalName = document.getElementById('modalHospitalName').value;
       
       updatedPayload.isFree = document.getElementById('isFreeVisit').checked;
       updatedPayload.fee = updatedPayload.isFree ? 0 : (parseFloat(document.getElementById('visitFee').value) || 0);
@@ -716,7 +759,7 @@
       const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
       
       if(!error) {
-        alert("✅ تم حفظ وتعديل البيانات أونلاين بنجاح!");
+        alert("✅ تم حفظ وتحديث بيانات الزيارة بنجاح!");
         closeModal();
         fetchAppointmentsFromSupabase();
       }
