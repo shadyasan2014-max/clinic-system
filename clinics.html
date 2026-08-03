@@ -23,7 +23,7 @@
   
   * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
   body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
-  .container { max-width: 1150px; margin: 0 auto; }
+  .container { max-width: 1180px; margin: 0 auto; }
   
   header { 
     background: var(--primary); 
@@ -111,7 +111,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة حجوزات العيادات وأرشفة أوراق الروشتات</p>
+        <p>نظام إدارة حجوزات العيادات </p>
       </div>
     </div>
     <button class="btn btn-secondary" onclick="toggleClinicManager()">⚙️ إدارة الفروع والعيادات</button>
@@ -232,7 +232,7 @@
     <div class="card-title">🔍 البحث الشامل والأرشيف (البحث في جميع العيادات والتواريخ السابقة)</div>
     <div class="grid">
       <div class="field" style="grid-column: span 2;">
-        <label>ابحث باسم المريض أو رقم التليفون لاستدعاء سجل الكشوفات والملاحظات والروشتات:</label>
+        <label>ابحث باسم المريض أو رقم التليفون لاستدعاء سجل الكشوفات والملاحظات والروشتات وتعديلها:</label>
         <div style="display: flex; gap: 10px;">
           <input type="text" id="globalSearchInput" placeholder="اكتب الاسم أو التليفون هنا..." style="flex: 1;">
           <button class="btn btn-secondary" style="width: auto; padding: 10px 20px;" onclick="globalSearchArchive()">بحث في الأرشيف</button>
@@ -253,6 +253,7 @@
             <th>الرسوم</th>
             <th>الملاحظات الطبية</th>
             <th>صورة الروشتة</th>
+            <th>تعديل البيان</th>
           </tr>
         </thead>
         <tbody id="archiveTableBody">
@@ -267,7 +268,7 @@
 <div id="checkInModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 id="modalTitle" style="color: var(--primary);">✅ تأكيد حضور / تعديل بيانات الزيارة الكاملة</h3>
+      <h3 id="modalTitle" style="color: var(--primary);">✏️ تعديل وتأكيد بيانات الزيارة بالكامل</h3>
       <button onclick="closeModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
 
@@ -279,6 +280,10 @@
       <div class="field">
         <label>رقم التليفون 1</label>
         <input type="tel" id="modalPhone1">
+      </div>
+      <div class="field">
+        <label>رقم التليفون 2</label>
+        <input type="tel" id="modalPhone2">
       </div>
       <div class="field">
         <label>نوع الزيارة</label>
@@ -489,7 +494,7 @@
         <div class="action-btns">
           ${app.status === 'pending' ? `<button class="btn btn-success" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✅ حضور ورفع روشتة</button>` : ''}
           ${app.paperImg ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` : ''}
-          <button class="btn btn-warning" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل كامل</button>
+          <button class="btn btn-warning" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل الزيارة</button>
           ${app.status !== 'cancelled' ? `<button class="btn btn-danger" style="padding: 5px 10px; font-size:0.8rem;" onclick="cancelAppointment(${app.dbId})">❌ إلغاء</button>` : `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="restoreAppointment(${app.dbId})">🔄 تفعيل</button>`}
         </div>
       `;
@@ -637,7 +642,7 @@
 
     tbody.innerHTML = '';
     if(results.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
     } else {
       results.forEach(app => {
         let imgBtn = app.paperImg 
@@ -656,6 +661,9 @@
             <td>${feeText}</td>
             <td>${app.notes || '-'}</td>
             <td>${imgBtn}</td>
+            <td>
+              <button class="btn btn-warning" style="padding: 4px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل الزيارة</button>
+            </td>
           </tr>
         `;
       });
@@ -681,8 +689,9 @@
     if(!app) return;
 
     currentUploadedImg = app.paperImg || "";
-    document.getElementById('modalPatientName').value = app.name;
-    document.getElementById('modalPhone1').value = app.phone1;
+    document.getElementById('modalPatientName').value = app.name || '';
+    document.getElementById('modalPhone1').value = app.phone1 || '';
+    document.getElementById('modalPhone2').value = app.phone2 || '';
     
     if(app.visitType.includes('متابعة')) {
       document.getElementById('modalVisitType').value = 'متابعة';
@@ -745,6 +754,7 @@
       updatedPayload.status = 'done';
       updatedPayload.name = document.getElementById('modalPatientName').value.trim();
       updatedPayload.phone1 = document.getElementById('modalPhone1').value.trim();
+      updatedPayload.phone2 = document.getElementById('modalPhone2').value.trim();
       updatedPayload.visitType = document.getElementById('modalVisitType').value;
       updatedPayload.notes = document.getElementById('visitNotes').value;
       updatedPayload.surgeryType = document.getElementById('modalSurgeryType').value;
@@ -759,9 +769,14 @@
       const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
       
       if(!error) {
-        alert("✅ تم حفظ وتحديث بيانات الزيارة بنجاح!");
+        alert("✅ تم تحديث بيانات الزيارة بنجاح أونلاين!");
         closeModal();
         fetchAppointmentsFromSupabase();
+        
+        // إعادة تحديث الأرشيف لو شغالين بحث
+        if(document.getElementById('globalSearchInput').value.trim()) {
+          globalSearchArchive();
+        }
       }
     }
   }
