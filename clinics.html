@@ -84,10 +84,13 @@
   .status-cancelled { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 
   .visit-badge { background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+  .price-badge { background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; }
+  .free-badge { background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; }
 
   .clinic-tag { display: inline-flex; align-items: center; gap: 8px; background: #e0f2fe; color: #0369a1; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; border: 1px solid #bae6fd; }
   .clinic-tag button { background: transparent; border: none; color: var(--danger); font-weight: bold; cursor: pointer; font-size: 1rem; }
 
+  /* Modal Styles */
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
   .modal-content { background: white; padding: 26px; border-radius: 14px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
   
@@ -108,7 +111,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة حجوزات العيادات </p>
+        <p>نظام إدارة حجوزات العيادات وأرشفة أوراق الروشتات</p>
       </div>
     </div>
     <button class="btn btn-secondary" onclick="toggleClinicManager()">⚙️ إدارة الفروع والعيادات</button>
@@ -201,12 +204,13 @@
           <th>أرقام التليفون</th>
           <th>التاريخ والفرع</th>
           <th>نوع الزيارة</th>
+          <th>مبلغ التحصيل</th>
           <th>حالة الحضور</th>
           <th>الإجراءات والعمليات</th>
         </tr>
       </thead>
       <tbody id="appointmentsTable">
-        <tr><td colspan="7" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الحجوزات أونلاين...</td></tr>
+        <tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الحجوزات أونلاين...</td></tr>
       </tbody>
     </table>
   </div>
@@ -233,6 +237,8 @@
             <th>التليفون</th>
             <th>الفرع والتاريخ</th>
             <th>نوع الزيارة</th>
+            <th>تاريخ العملية</th>
+            <th>الرسوم</th>
             <th>الملاحظات الطبية</th>
             <th>صورة الروشتة</th>
           </tr>
@@ -262,16 +268,34 @@
       </select>
     </div>
 
+    <!-- Financial Section -->
+    <div style="background-color: #fefce8; border: 1px solid #fef08a; padding: 14px; border-radius: 8px; margin-bottom: 16px;">
+      <div style="font-weight: bold; color: var(--accent-gold); margin-bottom: 8px;">💵 تحصيل رسوم الزيارة / الكشف:</div>
+      <div class="grid" style="margin-bottom: 0;">
+        <div class="field">
+          <label>سعر الكشف / الزيارة (ج.م)</label>
+          <input type="number" id="visitFee" placeholder="مثال: 500" value="0">
+        </div>
+        <div class="field" style="justify-content: center;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 18px;">
+            <input type="checkbox" id="isFreeVisit" onchange="handleFreeCheckbox()" style="width: 18px; height: 18px;">
+            <span style="font-weight: bold; color: var(--success);">كشف مجاني / بدون رسوم 🎁</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Follow Up Specific Fields (Surgery Date) -->
     <div id="followUpFields" class="followup-fields">
-      <div style="font-weight: bold; margin-bottom: 10px; color: var(--success);">🩺 تفاصيل العملية السابقة:</div>
-      <div class="grid">
+      <div style="font-weight: bold; margin-bottom: 10px; color: var(--success);">🩺 تفاصيل تاريخ العملية (للمتابعة):</div>
+      <div class="grid" style="margin-bottom: 0;">
+        <div class="field">
+          <label>تاريخ إجراء العملية</label>
+          <input type="date" id="surgeryDate">
+        </div>
         <div class="field">
           <label>نوع العملية</label>
           <input type="text" id="surgeryType" placeholder="تكميم، تحويل مسار...">
-        </div>
-        <div class="field">
-          <label>تاريخ العملية</label>
-          <input type="date" id="surgeryDate">
         </div>
         <div class="field">
           <label>المستشفى</label>
@@ -280,11 +304,13 @@
       </div>
     </div>
 
+    <!-- Notes Field -->
     <div class="field" style="margin-top: 14px;">
       <label>📝 ملاحظات الزيارة / التشخيص والتعليمات:</label>
       <textarea id="visitNotes" rows="3" placeholder="اكتب الملاحظات الطبية أو حالة المريض هنا..."></textarea>
     </div>
 
+    <!-- File Attachment -->
     <div class="field" style="margin-top: 16px;">
       <label>📷 إرفاق / تعديل صورة (ورقة الكشف / الروشتة / التقارير)</label>
       <input type="file" id="visitPaperImg" accept="image/*" onchange="previewImg(this, 'paperImgPrev')">
@@ -307,6 +333,7 @@
 </div>
 
 <script>
+  // 🔗 Supabase Configuration
   const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
   const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -325,13 +352,13 @@
 
   async function fetchAppointmentsFromSupabase() {
     let tbody = document.getElementById('appointmentsTable');
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الحجوزات أونلاين...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الحجوزات أونلاين...</td></tr>';
 
     const { data, error } = await supabaseClient.from('appointments').select('*').order('id', { ascending: false });
 
     if (error) {
       console.error(error);
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، برجاء التأكد من الاتصال.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، برجاء التأكد من الاتصال.</td></tr>';
     } else {
       allAppointments = data.map(item => ({
         dbId: item.id,
@@ -412,7 +439,7 @@
     tbody.innerHTML = '';
     
     if(!dataList || dataList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد حجوزات مسجلة لهذه العيادة في هذا التاريخ</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد حجوزات مسجلة لهذه العيادة في هذا التاريخ</td></tr>';
       return;
     }
 
@@ -422,6 +449,13 @@
       if(app.status === 'cancelled') statusHtml = '<span class="status-badge status-cancelled">❌ ملغى</span>';
       
       let phonesHtml = app.phone1 + (app.phone2 ? `<br><small style="color:#64748b;">${app.phone2}</small>` : '');
+
+      let feeHtml = '-';
+      if(app.status === 'done') {
+        feeHtml = app.isFree 
+          ? '<span class="free-badge">مجاني 🎁</span>' 
+          : `<span class="price-badge">${parseFloat(app.fee || 0).toLocaleString()} ج.م</span>`;
+      }
 
       let actionBtns = '';
 
@@ -452,6 +486,7 @@
           <td>${phonesHtml}</td>
           <td>${app.clinic}<br><small style="color:#64748b;">${app.date}</small></td>
           <td><span class="visit-badge">${app.visitType}</span></td>
+          <td>${feeHtml}</td>
           <td>${statusHtml}</td>
           <td>${actionBtns}</td>
         </tr>
@@ -476,7 +511,7 @@
 
     if(!name || !phone1) return alert("برجاء إدخال الاسم ورقم التليفون الرئيسي على الأقل");
 
-    let payload = { name, phone1, phone2, clinic, date, visitType, status: "pending", paperImg: "", notes: "", surgeryType: "", surgeryDate: "", hospitalName: "" };
+    let payload = { name, phone1, phone2, clinic, date, visitType, status: "pending", paperImg: "", notes: "", surgeryType: "", surgeryDate: "", hospitalName: "", fee: 0, isFree: false };
 
     const { error } = await supabaseClient.from('appointments').insert([{ data: payload }]);
 
@@ -562,12 +597,14 @@
 
     tbody.innerHTML = '';
     if(results.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
     } else {
       results.forEach(app => {
         let imgBtn = app.paperImg 
           ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ فتح الروشتة</button>` 
           : '<span style="color:#94a3b8; font-size:0.85rem;">لا توجد صورة</span>';
+
+        let feeText = app.isFree ? '<span class="free-badge">مجاني 🎁</span>' : (app.fee ? `${parseFloat(app.fee).toLocaleString()} ج.م` : '-');
 
         tbody.innerHTML += `
           <tr>
@@ -575,6 +612,8 @@
             <td>${app.phone1}</td>
             <td>${app.clinic}<br><small style="color:#64748b;">${app.date}</small></td>
             <td><span class="visit-badge">${app.visitType}</span></td>
+            <td>${app.surgeryDate || '-'}</td>
+            <td>${feeText}</td>
             <td>${app.notes || '-'}</td>
             <td>${imgBtn}</td>
           </tr>
@@ -583,6 +622,17 @@
     }
 
     box.style.display = 'block';
+  }
+
+  function handleFreeCheckbox() {
+    let isFree = document.getElementById('isFreeVisit').checked;
+    let feeInput = document.getElementById('visitFee');
+    if(isFree) {
+      feeInput.value = 0;
+      feeInput.disabled = true;
+    } else {
+      feeInput.disabled = false;
+    }
   }
 
   function openCheckInModal(dbId) {
@@ -605,6 +655,10 @@
     document.getElementById('surgeryDate').value = app.surgeryDate || '';
     document.getElementById('hospitalName').value = app.hospitalName || '';
     document.getElementById('visitNotes').value = app.notes || '';
+
+    document.getElementById('visitFee').value = app.fee || 0;
+    document.getElementById('isFreeVisit').checked = !!app.isFree;
+    handleFreeCheckbox();
 
     toggleFollowUpFields();
 
@@ -653,12 +707,16 @@
       updatedPayload.surgeryType = document.getElementById('surgeryType').value;
       updatedPayload.surgeryDate = document.getElementById('surgeryDate').value;
       updatedPayload.hospitalName = document.getElementById('hospitalName').value;
+      
+      updatedPayload.isFree = document.getElementById('isFreeVisit').checked;
+      updatedPayload.fee = updatedPayload.isFree ? 0 : (parseFloat(document.getElementById('visitFee').value) || 0);
+
       if(currentUploadedImg) updatedPayload.paperImg = currentUploadedImg;
 
       const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
       
       if(!error) {
-        alert("✅ تم حفظ وتعديل بيانات الزيارة بنجاح!");
+        alert("✅ تم حفظ وتعديل البيانات أونلاين بنجاح!");
         closeModal();
         fetchAppointmentsFromSupabase();
       }
