@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة العيادات والحجوزات - د. بهاء شكري</title>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #0f4c5c;
+    --primary-hover: #0a3641;
+    --accent-gold: #d97706;
+    --accent-lime: #84cc16;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --border: #cbd5e1;
+    --success: #16a34a;
+    --warning: #ca8a04;
+    --danger: #dc2626;
+  }
+  
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+  body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+  .container { max-width: 1150px; margin: 0 auto; }
+  
+  header { 
+    background: var(--primary); 
+    color: white; 
+    padding: 18px 24px; 
+    border-radius: 14px; 
+    margin-bottom: 24px; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); 
+    border-bottom: 3px solid var(--accent-lime);
+  }
+  .brand-logo { display: flex; align-items: center; gap: 16px; }
+  .logo-box {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-lime);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .logo-box img { width: 100%; height: 100%; object-fit: cover; }
+
+  .header-text h1 { font-size: 1.4rem; margin-bottom: 2px; color: #ffffff; }
+  .header-text p { font-size: 0.88rem; color: var(--accent-lime); font-weight: 500; }
+  
+  .card { background: var(--card-bg); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 2px 5px rgba(0,0,0,0.04); }
+  .card-title { font-size: 1.15rem; font-weight: bold; color: var(--primary); margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+  
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.88rem; font-weight: 600; color: #334155; }
+  .field input, .field select, .field textarea { padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 76, 92, 0.1); }
+
+  .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+  .btn:hover { background: var(--primary-hover); }
+  .btn-success { background: var(--success); }
+  .btn-success:hover { background: #15803d; }
+  .btn-secondary { background: #475569; }
+  .btn-secondary:hover { background: #334155; }
+  .btn-danger { background: var(--danger); }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-warning { background: var(--accent-gold); color: white; }
+  .btn-warning:hover { background: #b45309; }
+  
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; text-align: right; }
+  th, td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; }
+  th { background-color: #f1f5f9; color: var(--primary); font-weight: bold; }
+  
+  .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+  .status-pending { background: #fef9c3; color: #a16207; border: 1px solid #fde047; }
+  .status-done { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  .status-cancelled { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+  .visit-badge { background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+
+  .clinic-tag { display: inline-flex; align-items: center; gap: 8px; background: #e0f2fe; color: #0369a1; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; border: 1px solid #bae6fd; }
+  .clinic-tag button { background: transparent; border: none; color: var(--danger); font-weight: bold; cursor: pointer; font-size: 1rem; }
+
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
+  .modal-content { background: white; padding: 26px; border-radius: 14px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  
+  .followup-fields { background-color: #f0fdf4; border: 1px dashed #86efac; padding: 16px; border-radius: 8px; margin-top: 12px; display: none; }
+  .img-preview { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; display: none; background: #f8fafc; }
+
+  .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header Branding with Logo -->
+  <header>
+    <div class="brand-logo">
+      <div class="logo-box">
+        <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
+      </div>
+      <div class="header-text">
+        <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
+        <p>نظام إدارة حجوزات العيادات وأرشفة أوراق الروشتات</p>
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="toggleClinicManager()">⚙️ إدارة الفروع والعيادات</button>
+  </header>
+
+  <!-- Dynamic Clinics Manager Panel -->
+  <div id="clinicManagerBox" class="card" style="display: none; background: #fff7ed; border-color: #ffedd5;">
+    <div class="card-title" style="color: #c2410c; border-color: #ffedd5;">⚙️ إدارة قائمة العيادات والفروع</div>
+    <div class="grid" style="align-items: end;">
+      <div class="field" style="grid-column: span 2;">
+        <label>إضافة عيادة جديدة للقائمة:</label>
+        <input type="text" id="newClinicName" placeholder="مثال: عيادة التجمع، عيادة الشيخ زايد...">
+      </div>
+      <button class="btn btn-success" onclick="addNewClinic()">➕ إضافة العيادة</button>
+    </div>
+    <div style="margin-top: 12px;">
+      <label style="font-weight: bold; font-size: 0.9rem; color: #475569; display: block; margin-bottom: 8px;">العيادات المتاحة حالياً (اضغط ✖ لإنهاء/إلغاء عيادة):</label>
+      <div id="clinicsTagsContainer" style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Panel (Clinic & Date Selector) -->
+  <div class="card" style="background: #f0f9ff; border-color: #bae6fd;">
+    <div class="card-title" style="color: #0369a1; border-color: #bae6fd; display:flex; justify-content:space-between; align-items:center;">
+      <span>📍 تحديد العيادة والتاريخ لتصفية الحجوزات</span>
+      <button onclick="fetchAppointmentsFromSupabase()" class="btn btn-secondary" style="padding:4px 12px; font-size:0.8rem;">🔄 تحديث البيانات</button>
+    </div>
+    <div class="grid" style="margin-bottom: 0;">
+      <div class="field">
+        <label>اختر العيادة:</label>
+        <select id="activeClinic" onchange="filterAppointments()">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+      <div class="field">
+        <label>تاريخ الحجز واليومية:</label>
+        <input type="date" id="activeDate" onchange="filterAppointments()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Add New Appointment Form -->
+  <div class="card">
+    <div class="card-title">➕ إضافة حجز مريض جديد للعيادة والتاريخ المحددين أعلاه</div>
+    <div class="grid">
+      <div class="field">
+        <label>اسم المريض بالكامل</label>
+        <input type="text" id="patientName" placeholder="مثال: أحمد محمود">
+      </div>
+      <div class="field">
+        <label>رقم التليفون 1</label>
+        <input type="tel" id="patientPhone1" placeholder="01xxxxxxxxx">
+      </div>
+      <div class="field">
+        <label>رقم التليفون 2 (اختياري)</label>
+        <input type="tel" id="patientPhone2" placeholder="01xxxxxxxxx">
+      </div>
+      <div class="field">
+        <label>نوع الزيارة / الحجز</label>
+        <select id="bookingVisitType" onchange="toggleOtherTypeInput()">
+          <option value="كشف جديد">كشف جديد</option>
+          <option value="متابعة">متابعة</option>
+          <option value="أخرى">أخرى (تحديد بيان)</option>
+        </select>
+      </div>
+      <div class="field" id="otherTypeBox" style="display: none;">
+        <label style="color: var(--secondary);">حدد نوع الزيارة الأُخرى</label>
+        <input type="text" id="otherTypeDetail" placeholder="مثال: جلسة غيار، استشارة...">
+      </div>
+    </div>
+    <button class="btn" style="width: 100%; margin-top: 8px;" onclick="addAppointment()">💾 حفظ الحجز في اليومية أونلاين</button>
+  </div>
+
+  <!-- Appointments Table -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+      <div class="card-title" style="margin-bottom: 0; border: none; padding: 0;">📋 قائمة الحجوزات (<span id="currentFilterLabel" style="color: var(--accent-gold);"></span>)</div>
+      <div class="field" style="width: 250px;">
+        <input type="text" id="tableSearchInput" placeholder="🔍 فلترة جدول اليوم..." onkeyup="searchInCurrentTable()">
+      </div>
+    </div>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>م</th>
+          <th>اسم المريض</th>
+          <th>أرقام التليفون</th>
+          <th>التاريخ والفرع</th>
+          <th>نوع الزيارة</th>
+          <th>حالة الحضور</th>
+          <th>الإجراءات والعمليات</th>
+        </tr>
+      </thead>
+      <tbody id="appointmentsTable">
+        <tr><td colspan="7" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الحجوزات أونلاين...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Global Patient Search & Archive Section -->
+  <div class="card" style="background: #f8fafc; border: 2px dashed #cbd5e1;">
+    <div class="card-title">🔍 البحث الشامل والأرشيف (البحث في جميع العيادات والتواريخ السابقة)</div>
+    <div class="grid">
+      <div class="field" style="grid-column: span 2;">
+        <label>ابحث باسم المريض أو رقم التليفون لاستدعاء سجل الكشوفات والملاحظات والروشتات:</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="globalSearchInput" placeholder="اكتب الاسم أو التليفون هنا..." style="flex: 1;">
+          <button class="btn btn-secondary" style="width: auto; padding: 10px 20px;" onclick="globalSearchArchive()">بحث في الأرشيف</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="archiveResultsBox" style="display: none; margin-top: 16px; background: #fff; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <h4 style="color: var(--primary); margin-bottom: 10px;">📂 نتائج البحث والأرشيف الطبي:</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>اسم المريض</th>
+            <th>التليفون</th>
+            <th>الفرع والتاريخ</th>
+            <th>نوع الزيارة</th>
+            <th>الملاحظات الطبية</th>
+            <th>صورة الروشتة</th>
+          </tr>
+        </thead>
+        <tbody id="archiveTableBody">
+          <!-- Results populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Check-in & Edit Modal -->
+<div id="checkInModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 id="modalTitle" style="color: var(--primary);">✅ تأكيد حضور / تعديل الزيارة: <span id="modalPatientName"></span></h3>
+      <button onclick="closeModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+
+    <div class="field" style="margin-bottom: 16px;">
+      <label>تأكيد / تعديل نوع الزيارة:</label>
+      <select id="modalVisitType" onchange="toggleFollowUpFields()">
+        <option value="كشف جديد">كشف جديد</option>
+        <option value="متابعة">متابعة (بعد العملية)</option>
+        <option value="أخرى">أخرى</option>
+      </select>
+    </div>
+
+    <div id="followUpFields" class="followup-fields">
+      <div style="font-weight: bold; margin-bottom: 10px; color: var(--success);">🩺 تفاصيل العملية السابقة:</div>
+      <div class="grid">
+        <div class="field">
+          <label>نوع العملية</label>
+          <input type="text" id="surgeryType" placeholder="تكميم، تحويل مسار...">
+        </div>
+        <div class="field">
+          <label>تاريخ العملية</label>
+          <input type="date" id="surgeryDate">
+        </div>
+        <div class="field">
+          <label>المستشفى</label>
+          <input type="text" id="hospitalName" placeholder="اسم المستشفى">
+        </div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top: 14px;">
+      <label>📝 ملاحظات الزيارة / التشخيص والتعليمات:</label>
+      <textarea id="visitNotes" rows="3" placeholder="اكتب الملاحظات الطبية أو حالة المريض هنا..."></textarea>
+    </div>
+
+    <div class="field" style="margin-top: 16px;">
+      <label>📷 إرفاق / تعديل صورة (ورقة الكشف / الروشتة / التقارير)</label>
+      <input type="file" id="visitPaperImg" accept="image/*" onchange="previewImg(this, 'paperImgPrev')">
+      <img id="paperImgPrev" class="img-preview">
+    </div>
+
+    <button class="btn btn-success" style="width: 100%; margin-top: 20px;" onclick="confirmCheckIn()">💾 حفظ البيانات والروشتة أونلاين</button>
+  </div>
+</div>
+
+<!-- Image Viewer Modal -->
+<div id="imageViewerModal" class="modal">
+  <div class="modal-content" style="text-align: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">🖼️ ورقة الكشف / الروشتة المرفقة</h3>
+      <button onclick="closeImageViewer()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <img id="viewerImage" src="" style="max-width: 100%; max-height: 70vh; border-radius: 8px; border: 1px solid var(--border);">
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  document.getElementById('activeDate').valueAsDate = new Date();
+
+  let availableClinics = ["حلوان", "المهندسين", "مصر الجديدة", "اسكندرية"];
+  let allAppointments = [];
+  let currentCheckInId = null;
+  let currentUploadedImg = "";
+
+  window.onload = function() {
+    renderClinicsOptions();
+    fetchAppointmentsFromSupabase();
+  };
+
+  async function fetchAppointmentsFromSupabase() {
+    let tbody = document.getElementById('appointmentsTable');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الحجوزات أونلاين...</td></tr>';
+
+    const { data, error } = await supabaseClient.from('appointments').select('*').order('id', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، برجاء التأكد من الاتصال.</td></tr>';
+    } else {
+      allAppointments = data.map(item => ({
+        dbId: item.id,
+        ...item.data
+      }));
+      filterAppointments();
+    }
+  }
+
+  function toggleClinicManager() {
+    let box = document.getElementById('clinicManagerBox');
+    box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+  }
+
+  function renderClinicsOptions() {
+    let select = document.getElementById('activeClinic');
+    let tagsContainer = document.getElementById('clinicsTagsContainer');
+    
+    let currentVal = select.value;
+    select.innerHTML = '';
+    tagsContainer.innerHTML = '';
+
+    availableClinics.forEach(c => {
+      select.innerHTML += `<option value="${c}">${c}</option>`;
+      tagsContainer.innerHTML += `
+        <div class="clinic-tag">
+          <span>${c}</span>
+          <button onclick="removeClinic('${c}')" title="إلغاء العيادة">✖</button>
+        </div>
+      `;
+    });
+
+    if(availableClinics.includes(currentVal)) {
+      select.value = currentVal;
+    }
+  }
+
+  function addNewClinic() {
+    let input = document.getElementById('newClinicName');
+    let name = input.value.trim();
+
+    if(!name) return alert("يرجى كتابة اسم العيادة");
+    if(availableClinics.includes(name)) return alert("هذه العيادة موجودة بالفعل في القائمة");
+
+    availableClinics.push(name);
+    input.value = '';
+    renderClinicsOptions();
+    filterAppointments();
+    alert(`✅ تم إدراج (${name}) بنجاح!`);
+  }
+
+  function removeClinic(name) {
+    if(availableClinics.length <= 1) return alert("يجب إبقاء عيادة واحدة على الأقل في السيستم!");
+    if(confirm(`هل أنت تأكد من إلغاء (${name}) من القائمة؟`)) {
+      availableClinics = availableClinics.filter(c => c !== name);
+      renderClinicsOptions();
+      filterAppointments();
+    }
+  }
+
+  function toggleOtherTypeInput() {
+    let type = document.getElementById('bookingVisitType').value;
+    document.getElementById('otherTypeBox').style.display = (type === 'أخرى') ? 'flex' : 'none';
+  }
+
+  function filterAppointments() {
+    let selectedClinic = document.getElementById('activeClinic').value;
+    let selectedDate = document.getElementById('activeDate').value;
+
+    document.getElementById('currentFilterLabel').innerText = `${selectedClinic || ''} - بتاريخ: ${selectedDate || ''}`;
+
+    let filtered = allAppointments.filter(app => app.clinic === selectedClinic && app.date === selectedDate);
+    renderTable(filtered);
+  }
+
+  function renderTable(dataList) {
+    let tbody = document.getElementById('appointmentsTable');
+    tbody.innerHTML = '';
+    
+    if(!dataList || dataList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد حجوزات مسجلة لهذه العيادة في هذا التاريخ</td></tr>';
+      return;
+    }
+
+    dataList.forEach((app, index) => {
+      let statusHtml = '<span class="status-badge status-pending">⏳ لم يحضر</span>';
+      if(app.status === 'done') statusHtml = '<span class="status-badge status-done">✅ تم الحضور والكشف</span>';
+      if(app.status === 'cancelled') statusHtml = '<span class="status-badge status-cancelled">❌ ملغى</span>';
+      
+      let phonesHtml = app.phone1 + (app.phone2 ? `<br><small style="color:#64748b;">${app.phone2}</small>` : '');
+
+      let actionBtns = '';
+
+      if(app.status === 'pending') {
+        actionBtns = `
+          <div class="action-btns">
+            <button class="btn btn-success" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✅ حضور ورفع روشتة</button>
+            <button class="btn btn-danger" style="padding: 5px 10px; font-size:0.8rem;" onclick="cancelAppointment(${app.dbId})">❌ إلغاء الحجز</button>
+          </div>
+        `;
+      } else if(app.status === 'done') {
+        actionBtns = `
+          <div class="action-btns">
+            ${app.paperImg ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` : ''}
+            <button class="btn btn-warning" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل الزيارة</button>
+          </div>
+        `;
+      } else {
+        actionBtns = `
+          <button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="restoreAppointment(${app.dbId})">🔄 إعادة تفعيل الحجز</button>
+        `;
+      }
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${index + 1}</td>
+          <td><b>${app.name}</b></td>
+          <td>${phonesHtml}</td>
+          <td>${app.clinic}<br><small style="color:#64748b;">${app.date}</small></td>
+          <td><span class="visit-badge">${app.visitType}</span></td>
+          <td>${statusHtml}</td>
+          <td>${actionBtns}</td>
+        </tr>
+      `;
+    });
+  }
+
+  async function addAppointment() {
+    let name = document.getElementById('patientName').value.trim();
+    let phone1 = document.getElementById('patientPhone1').value.trim();
+    let phone2 = document.getElementById('patientPhone2').value.trim();
+    let clinic = document.getElementById('activeClinic').value;
+    let date = document.getElementById('activeDate').value;
+    
+    let visitSelect = document.getElementById('bookingVisitType').value;
+    let visitType = visitSelect;
+
+    if(visitSelect === 'أخرى') {
+      let detail = document.getElementById('otherTypeDetail').value.trim();
+      visitType = detail ? `أخرى (${detail})` : 'أخرى';
+    }
+
+    if(!name || !phone1) return alert("برجاء إدخال الاسم ورقم التليفون الرئيسي على الأقل");
+
+    let payload = { name, phone1, phone2, clinic, date, visitType, status: "pending", paperImg: "", notes: "", surgeryType: "", surgeryDate: "", hospitalName: "" };
+
+    const { error } = await supabaseClient.from('appointments').insert([{ data: payload }]);
+
+    if(!error) {
+      alert("✅ تم حفظ الحجز أونلاين بنجاح!");
+      document.getElementById('patientName').value = '';
+      document.getElementById('patientPhone1').value = '';
+      document.getElementById('patientPhone2').value = '';
+      document.getElementById('bookingVisitType').value = 'كشف جديد';
+      document.getElementById('otherTypeDetail').value = '';
+      toggleOtherTypeInput();
+      fetchAppointmentsFromSupabase();
+    }
+  }
+
+  async function cancelAppointment(dbId) {
+    if(confirm("هل أنت تأكد من إلغاء هذا الحجز؟")) {
+      let app = allAppointments.find(a => a.dbId === dbId);
+      if(app) {
+        let updatedPayload = { ...app };
+        delete updatedPayload.dbId;
+        updatedPayload.status = 'cancelled';
+
+        const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', dbId);
+        if(!error) {
+          fetchAppointmentsFromSupabase();
+        }
+      }
+    }
+  }
+
+  async function restoreAppointment(dbId) {
+    let app = allAppointments.find(a => a.dbId === dbId);
+    if(app) {
+      let updatedPayload = { ...app };
+      delete updatedPayload.dbId;
+      updatedPayload.status = 'pending';
+
+      const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', dbId);
+      if(!error) {
+        fetchAppointmentsFromSupabase();
+      }
+    }
+  }
+
+  function searchInCurrentTable() {
+    let query = document.getElementById('tableSearchInput').value.trim().toLowerCase();
+    let selectedClinic = document.getElementById('activeClinic').value;
+    let selectedDate = document.getElementById('activeDate').value;
+
+    let baseList = allAppointments.filter(app => app.clinic === selectedClinic && app.date === selectedDate);
+
+    if(!query) {
+      renderTable(baseList);
+      return;
+    }
+
+    let searchResult = baseList.filter(app => 
+      app.name.toLowerCase().includes(query) ||
+      app.phone1.includes(query) ||
+      (app.phone2 && app.phone2.includes(query))
+    );
+
+    renderTable(searchResult);
+  }
+
+  function globalSearchArchive() {
+    let query = document.getElementById('globalSearchInput').value.trim().toLowerCase();
+    let box = document.getElementById('archiveResultsBox');
+    let tbody = document.getElementById('archiveTableBody');
+
+    if(!query) {
+      alert("يرجى كتابة اسم المريض أو رقم التليفون للبحث في الأرشيف");
+      box.style.display = 'none';
+      return;
+    }
+
+    let results = allAppointments.filter(app => 
+      app.name.toLowerCase().includes(query) ||
+      app.phone1.includes(query) ||
+      (app.phone2 && app.phone2.includes(query))
+    );
+
+    tbody.innerHTML = '';
+    if(results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
+    } else {
+      results.forEach(app => {
+        let imgBtn = app.paperImg 
+          ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ فتح الروشتة</button>` 
+          : '<span style="color:#94a3b8; font-size:0.85rem;">لا توجد صورة</span>';
+
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${app.name}</b></td>
+            <td>${app.phone1}</td>
+            <td>${app.clinic}<br><small style="color:#64748b;">${app.date}</small></td>
+            <td><span class="visit-badge">${app.visitType}</span></td>
+            <td>${app.notes || '-'}</td>
+            <td>${imgBtn}</td>
+          </tr>
+        `;
+      });
+    }
+
+    box.style.display = 'block';
+  }
+
+  function openCheckInModal(dbId) {
+    currentCheckInId = dbId;
+    let app = allAppointments.find(a => a.dbId === dbId);
+    if(!app) return;
+
+    currentUploadedImg = app.paperImg || "";
+    document.getElementById('modalPatientName').innerText = app.name;
+    
+    if(app.visitType.includes('متابعة')) {
+      document.getElementById('modalVisitType').value = 'متابعة';
+    } else if(app.visitType.includes('أخرى')) {
+      document.getElementById('modalVisitType').value = 'أخرى';
+    } else {
+      document.getElementById('modalVisitType').value = 'كشف جديد';
+    }
+
+    document.getElementById('surgeryType').value = app.surgeryType || '';
+    document.getElementById('surgeryDate').value = app.surgeryDate || '';
+    document.getElementById('hospitalName').value = app.hospitalName || '';
+    document.getElementById('visitNotes').value = app.notes || '';
+
+    toggleFollowUpFields();
+
+    let prevImg = document.getElementById('paperImgPrev');
+    if(app.paperImg) {
+      prevImg.src = app.paperImg;
+      prevImg.style.display = 'block';
+    } else {
+      prevImg.style.display = 'none';
+    }
+    document.getElementById('visitPaperImg').value = '';
+    
+    document.getElementById('checkInModal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('checkInModal').style.display = 'none';
+  }
+
+  function toggleFollowUpFields() {
+    let type = document.getElementById('modalVisitType').value;
+    document.getElementById('followUpFields').style.display = (type === 'متابعة') ? 'block' : 'none';
+  }
+
+  function previewImg(input, targetId) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById(targetId).src = e.target.result;
+        document.getElementById(targetId).style.display = 'block';
+        currentUploadedImg = e.target.result;
+      }
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  async function confirmCheckIn() {
+    let app = allAppointments.find(a => a.dbId === currentCheckInId);
+    if(app) {
+      let updatedPayload = { ...app };
+      delete updatedPayload.dbId;
+
+      updatedPayload.status = 'done';
+      updatedPayload.visitType = document.getElementById('modalVisitType').value;
+      updatedPayload.notes = document.getElementById('visitNotes').value;
+      updatedPayload.surgeryType = document.getElementById('surgeryType').value;
+      updatedPayload.surgeryDate = document.getElementById('surgeryDate').value;
+      updatedPayload.hospitalName = document.getElementById('hospitalName').value;
+      if(currentUploadedImg) updatedPayload.paperImg = currentUploadedImg;
+
+      const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
+      
+      if(!error) {
+        alert("✅ تم حفظ وتعديل بيانات الزيارة بنجاح!");
+        closeModal();
+        fetchAppointmentsFromSupabase();
+      }
+    }
+  }
+
+  function viewImage(imgSrc) {
+    document.getElementById('viewerImage').src = imgSrc;
+    document.getElementById('imageViewerModal').style.display = 'flex';
+  }
+
+  function closeImageViewer() {
+    document.getElementById('imageViewerModal').style.display = 'none';
+  }
+</script>
+</body>
+</html>
