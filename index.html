@@ -66,6 +66,8 @@
   .btn-print { background: #475569; }
   .btn-edit { background: #d97706; }
   .btn-edit:hover { background: #b45309; }
+  .btn-sort { background: #0284c7; }
+  .btn-sort:hover { background: #0369a1; }
   
   table { width: 100%; border-collapse: collapse; margin-top: 12px; text-align: right; }
   th, td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
@@ -120,7 +122,10 @@
   <div class="card" style="background: #f1f5f9;">
     <div class="card-title" style="border-color: #cbd5e1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <span>🔍 البحث السريع وفلترة الحالات</span>
-      <button onclick="fetchDataFromSupabase()" class="btn" style="width:auto; padding:4px 12px; font-size:0.8rem; background:#475569;">🔄 تحديث البيانات</button>
+      <div style="display:flex; gap:8px;">
+        <button onclick="sortCustomersByCodeAsc()" class="btn btn-sort" style="width:auto; padding:6px 14px; font-size:0.85rem;">🔃 إعادة الترتيب بحسب الكود</button>
+        <button onclick="fetchDataFromSupabase()" class="btn" style="width:auto; padding:6px 14px; font-size:0.85rem; background:#475569;">🔄 تحديث البيانات</button>
+      </div>
     </div>
     <div class="grid">
       <div class="field">
@@ -140,11 +145,11 @@
         </select>
       </div>
       <div class="field">
-        <label>ترتيب القائمة</label>
+        <label>طريقة الترتيب</label>
         <select id="sortOption" onchange="filterAndSortCustomers()">
-          <option value="codeAsc" selected>🔢 الكود تصاعدي (C-001 -> C-100)</option>
-          <option value="codeDesc">🔢 الكود تنازلي (C-100 -> C-001)</option>
-          <option value="dateDesc">📅 الأحدث إدخالاً</option>
+          <option value="codeAsc" selected>🔢 ترقيم الكود تصاعدي (C-001 -> C-100)</option>
+          <option value="codeDesc">🔢 ترقيم الكود تنازلي (C-100 -> C-001)</option>
+          <option value="dateDesc">📅 الأحدث إدخالاً أولاً</option>
         </select>
       </div>
     </div>
@@ -267,7 +272,10 @@
 
   <!-- Directory Table -->
   <div class="card">
-    <div class="card-title">👥 قائمة العملاء المسجلين</div>
+    <div class="card-title" style="display:flex; justify-style:space-between; align-items:center;">
+      <span>👥 قائمة العملاء المسجلين</span>
+      <button onclick="sortCustomersByCodeAsc()" class="btn btn-sort" style="width:auto; padding:4px 12px; font-size:0.8rem;">🔃 إعادة ترتيب الجدول</button>
+    </div>
     <table>
       <thead>
         <tr>
@@ -388,6 +396,11 @@
     }
   }
 
+  function sortCustomersByCodeAsc() {
+    document.getElementById('sortOption').value = 'codeAsc';
+    filterAndSortCustomers();
+  }
+
   function filterAndSortCustomers() {
     let query = document.getElementById('searchInput').value.trim().toLowerCase();
     let filter = document.getElementById('statusFilter').value;
@@ -408,7 +421,6 @@
       result = result.filter(c => c.payType === filter);
     }
 
-    // الترتيب باستخدام localeCompare الطبيعي للرموز والأرقام
     result.sort((a, b) => {
       let codeA = a.code ? a.code.toString() : "";
       let codeB = b.code ? b.code.toString() : "";
