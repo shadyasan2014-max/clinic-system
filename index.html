@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام إدارة العملاء - د. بهاء شكري</title>
+<title>نظام إدارة العملاء والحسابات - د. بهاء شكري</title>
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -108,7 +108,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة وتخزين بيانات العملاء </p>
+        <p>نظام إدارة وتخزين بيانات العملاء والحسابات</p>
       </div>
     </div>
     <div style="font-size: 0.85rem; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px;">
@@ -118,7 +118,7 @@
 
   <!-- Search & Filter Card -->
   <div class="card" style="background: #f1f5f9;">
-    <div class="card-title" style="border-color: #cbd5e1; display:flex; justify-content:space-between; align-items:center;">
+    <div class="card-title" style="border-color: #cbd5e1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <span>🔍 البحث السريع وفلترة الحالات</span>
       <button onclick="fetchDataFromSupabase()" class="btn" style="width:auto; padding:4px 12px; font-size:0.8rem; background:#475569;">🔄 تحديث البيانات</button>
     </div>
@@ -126,17 +126,25 @@
       <div class="field">
         <label>ابحث باسم العميل، التليفون، أو الرقم القومي</label>
         <div style="display: flex; gap: 8px;">
-          <input type="text" id="searchInput" placeholder="اكتب للبحث..." onkeyup="searchCustomer()" style="flex: 1;">
-          <button class="btn" style="width: auto; padding: 10px 16px;" onclick="searchCustomer()">بحث</button>
+          <input type="text" id="searchInput" placeholder="اكتب للبحث..." onkeyup="filterAndSortCustomers()" style="flex: 1;">
+          <button class="btn" style="width: auto; padding: 10px 16px;" onclick="filterAndSortCustomers()">بحث</button>
         </div>
       </div>
       <div class="field">
         <label>فلتر الحالات</label>
-        <select id="statusFilter" onchange="filterCustomers()">
+        <select id="statusFilter" onchange="filterAndSortCustomers()">
           <option value="all">عرض الكل</option>
           <option value="installment">قسط مباشر معنا</option>
           <option value="company">قسط شركة خارجية</option>
           <option value="cash">عملاء الكاش</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ترتيب حسب الكود</label>
+        <select id="sortOption" onchange="filterAndSortCustomers()">
+          <option value="codeAsc">🔢 ترقيم الكود (من الأصغر للأكبر)</option>
+          <option value="codeDesc">🔢 ترقيم الكود (من الأكبر للأصغر)</option>
+          <option value="dateDesc" selected>📅 الأحدث إدخالاً أولاً</option>
         </select>
       </div>
     </div>
@@ -152,7 +160,7 @@
       <div class="grid">
         <div class="field">
           <label>كود العميل</label>
-          <input type="text" id="custCode" placeholder="مثال: C-101" required>
+          <input type="text" id="custCode" placeholder="مثال: C-101 أو 101" required>
         </div>
         <div class="field">
           <label>اسم العميل بالكامل</label>
@@ -259,7 +267,7 @@
 
   <!-- Directory Table -->
   <div class="card">
-    <div class="card-title">👥 قائمة العملاء المسجلين</div>
+    <div class="card-title">👥 قائمة العملاء المسجلين بالحسابات</div>
     <table>
       <thead>
         <tr>
@@ -376,8 +384,53 @@
         dbId: item.id,
         ...item.data
       }));
-      renderTable(customersList);
+      filterAndSortCustomers();
     }
+  }
+
+  function parseCodeNum(code) {
+    if (!code) return Infinity;
+    let match = code.toString().match(/\d+/);
+    return match ? parseInt(match[0], 10) : Infinity;
+  }
+
+  function filterAndSortCustomers() {
+    let query = document.getElementById('searchInput').value.trim().toLowerCase();
+    let filter = document.getElementById('statusFilter').value;
+    let sortVal = document.getElementById('sortOption').value;
+
+    let result = [...customersList];
+
+    if (query) {
+      result = result.filter(c => 
+        (c.name && c.name.toLowerCase().includes(query)) || 
+        (c.phone && c.phone.includes(query)) || 
+        (c.nationalId && c.nationalId.includes(query)) ||
+        (c.code && c.code.toLowerCase().includes(query))
+      );
+    }
+
+    if (filter !== 'all') {
+      result = result.filter(c => c.payType === filter);
+    }
+
+    result.sort((a, b) => {
+      if (sortVal === 'codeAsc') {
+        let codeA = parseCodeNum(a.code);
+        let codeB = parseCodeNum(b.code);
+        return codeA - codeB;
+      } else if (sortVal === 'codeDesc') {
+        let codeA = parseCodeNum(a.code);
+        let codeB = parseCodeNum(b.code);
+        if (codeA === Infinity) return 1;
+        if (codeB === Infinity) return -1;
+        return codeB - codeA;
+      } else {
+        return b.dbId - a.dbId;
+      }
+    });
+
+    renderTable(result);
   }
 
   function previewImg(input, targetId) {
@@ -402,7 +455,7 @@
   async function saveAndSync() {
     let editDbId = parseInt(document.getElementById('editDbId').value);
 
-    let code = document.getElementById('custCode').value;
+    let code = document.getElementById('custCode').value.trim();
     let name = document.getElementById('custName').value;
     let phone = document.getElementById('custPhone1').value;
     let nationalId = document.getElementById('custNationalId').value;
@@ -506,7 +559,8 @@
       return;
     }
 
-    data.forEach((c, index) => {
+    data.forEach((c) => {
+      let realIndex = customersList.findIndex(item => item.dbId === c.dbId);
       let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
       let remaining = c.total - totalPaid;
       
@@ -515,7 +569,7 @@
       if(c.payType === 'company') badge = `<span class="badge badge-company">قسط شركة (${c.company || 'خارجية'})</span>`;
 
       tbody.innerHTML += `<tr>
-        <td><b>${c.code}</b></td>
+        <td><b style="color:var(--primary);">${c.code}</b></td>
         <td>${c.name}</td>
         <td>${c.phone}</td>
         <td>${c.type}</td>
@@ -523,8 +577,8 @@
         <td>${c.elite}</td>
         <td>${badge}</td>
         <td>
-          <button class="btn" style="padding: 5px 10px; font-size: 0.8rem;" onclick="openCustomerModal(${index})">📂 الحساب</button>
-          <button class="btn btn-edit" style="padding: 5px 10px; font-size: 0.8rem; margin-top: 4px;" onclick="editCustomer(${index})">✏️ تعديل</button>
+          <button class="btn" style="padding: 5px 10px; font-size: 0.8rem;" onclick="openCustomerModal(${realIndex})">📂 الحساب</button>
+          <button class="btn btn-edit" style="padding: 5px 10px; font-size: 0.8rem; margin-top: 4px;" onclick="editCustomer(${realIndex})">✏️ تعديل</button>
         </td>
       </tr>`;
     });
@@ -566,7 +620,7 @@
 
   function closeModal() {
     document.getElementById('customerModal').style.display = 'none';
-    renderTable(customersList);
+    filterAndSortCustomers();
   }
 
   async function addInstallmentToCurrentCustomer() {
@@ -583,9 +637,10 @@
     c.history.push({ date: date, amount: amount, type: 'قسط مسدد' });
 
     let dbId = c.dbId;
-    delete c.dbId; // مؤقتاً للتحديث
+    let payload = { ...c };
+    delete payload.dbId;
 
-    const { error } = await supabaseClient.from('customers').update({ data: c }).eq('id', dbId);
+    const { error } = await supabaseClient.from('customers').update({ data: payload }).eq('id', dbId);
 
     document.getElementById('instAmount').value = '';
     document.getElementById('instDate').value = '';
@@ -672,30 +727,6 @@
     document.getElementById('printReceiptArea').style.display = 'block';
     window.print();
     document.getElementById('printReceiptArea').style.display = 'none';
-  }
-
-  function searchCustomer() {
-    let query = document.getElementById('searchInput').value.trim().toLowerCase();
-    if(!query) {
-      renderTable(customersList);
-      return;
-    }
-    let filtered = customersList.filter(c => 
-      (c.name && c.name.toLowerCase().includes(query)) || 
-      (c.phone && c.phone.includes(query)) || 
-      (c.nationalId && c.nationalId.includes(query)) ||
-      (c.code && c.code.toLowerCase().includes(query))
-    );
-    renderTable(filtered);
-  }
-
-  function filterCustomers() {
-    let filter = document.getElementById('statusFilter').value;
-    if(filter === 'all') {
-      renderTable(customersList);
-    } else {
-      renderTable(customersList.filter(c => c.payType === filter));
-    }
   }
 </script>
 </body>
