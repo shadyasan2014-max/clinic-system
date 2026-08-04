@@ -73,7 +73,7 @@
 
   /* Excel Table Styling */
   .table-responsive { overflow-x: auto; max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; }
-  table.excel-table { width: 100%; border-collapse: collapse; text-align: center; min-width: 1550px; font-size: 0.85rem; }
+  table.excel-table { width: 100%; border-collapse: collapse; text-align: center; min-width: 1500px; font-size: 0.85rem; }
   table.excel-table th, table.excel-table td { border: 1px solid #cbd5e1; padding: 8px 6px; white-space: nowrap; }
   table.excel-table th { background-color: #b91c1c; color: white; font-weight: bold; position: sticky; top: 0; }
   table.excel-table tr:nth-child(even) { background-color: #f8fafc; }
@@ -113,10 +113,6 @@
       <div class="field">
         <label>Date (تاريخ العملية)</label>
         <input type="date" id="opDate">
-      </div>
-      <div class="field">
-        <label>Code (كود العملاء بعد العملية)</label>
-        <input type="text" id="patientCode" placeholder="CUST-101...">
       </div>
       <div class="field">
         <label>Governorate (المحافظة)</label>
@@ -207,7 +203,6 @@
         <thead>
           <tr>
             <th>Date</th>
-            <th>Code</th>
             <th>Governorate</th>
             <th>Hospital</th>
             <th>Name</th>
@@ -228,7 +223,7 @@
           </tr>
         </thead>
         <tbody id="dailyTableBody">
-          <tr><td colspan="19" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
+          <tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
         </tbody>
       </table>
     </div>
@@ -237,7 +232,7 @@
   <!-- SECTION 1: Daily Operations Filter & Confirmation List -->
   <div class="card" style="background: #f0f9ff; border-color: #bae6fd;">
     <div class="card-title" style="color: #0369a1; border-color: #bae6fd;">
-      <span>📅 الجزء الأول: تصفية وتأكيد يومية العمليات (تأكيد إجراء العملية ورابط كود الحسابات)</span>
+      <span>📅 الجزء الأول: تصفية وتأكيد يومية العمليات (تأكيد إجراء العملية )</span>
     </div>
     
     <div class="grid">
@@ -265,11 +260,10 @@
               <th>تأكيد موقف العملية</th>
               <th>تاريخ العملية</th>
               <th>كود العملاء بعد العملية</th>
-              <th>الإجراءات</th>
             </tr>
           </thead>
           <tbody id="confirmationTableBody">
-            <tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب حالات اليوم...</td></tr>
+            <tr><td colspan="7" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب حالات اليوم...</td></tr>
           </tbody>
         </table>
       </div>
@@ -307,7 +301,6 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Code</th>
               <th>Governorate</th>
               <th>Hospital</th>
               <th>Name</th>
@@ -346,7 +339,6 @@
 
     <div class="grid">
       <div class="field"><label>Date (تاريخ العملية)</label><input type="date" id="mOpDate"></div>
-      <div class="field"><label>Code (كود العملاء بعد العملية)</label><input type="text" id="mCode"></div>
       <div class="field"><label>Governorate</label><input type="text" id="mGovernorate"></div>
       <div class="field"><label>Hospital</label><input type="text" id="mHospital"></div>
       <div class="field"><label>Name</label><input type="text" id="mName"></div>
@@ -412,12 +404,12 @@
 
   async function fetchPreOpFromSupabase() {
     let tbody = document.getElementById('dailyTableBody');
-    tbody.innerHTML = '<tr><td colspan="19" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
 
     const { data, error } = await supabaseClient.from('preop_records').select('*').order('id', { ascending: false });
 
     if (error) {
-      tbody.innerHTML = '<tr><td colspan="19" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، يرجى التأكد من إضافة جدول preop_records في Supabase.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، يرجى التأكد من إضافة جدول preop_records في Supabase.</td></tr>';
     } else {
       allPreOpRecords = data.map(item => ({ dbId: item.id, ...item.data }));
       filterDailyList();
@@ -443,7 +435,7 @@
     tbody.innerHTML = '';
 
     if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:15px;">لا توجد حالات مسجلة لهذا اليوم</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:15px;">لا توجد حالات مسجلة لهذا اليوم</td></tr>';
       return;
     }
 
@@ -458,24 +450,18 @@
           <td>${item.hospital || '-'}</td>
           <td>${item.operation || '-'}</td>
           <td>
-            <select id="statusSelect_${item.dbId}" onchange="toggleRowCodeBox(${item.dbId})" style="padding:6px; font-weight:bold;">
+            <select id="statusSelect_${item.dbId}" onchange="autoSaveRowStatus(${item.dbId})" style="padding:6px; font-weight:bold;">
               <option value="pending" ${status === 'pending' ? 'selected' : ''}>⏳ قيد التجهيز</option>
               <option value="completed" ${status === 'completed' ? 'selected' : ''}>✅ تم تأكيد العملية</option>
               <option value="delayed" ${status === 'delayed' ? 'selected' : ''}>❌ تأجلت العملية</option>
             </select>
           </td>
           <td>
-            <input type="date" id="rowOpDate_${item.dbId}" value="${item.opDate || ''}" style="padding:6px; font-weight:bold;">
+            <input type="date" id="rowOpDate_${item.dbId}" value="${item.opDate || ''}" onchange="autoSaveRowStatus(${item.dbId})" style="padding:6px; font-weight:bold;">
           </td>
           <td>
             <div id="codeContainer_${item.dbId}" style="${showCodeStyle}">
-              <input type="text" id="rowCode_${item.dbId}" value="${item.patientCode || ''}" placeholder="اكتب الكود..." style="padding:6px; font-weight:bold; color:var(--primary); width:100%;">
-            </div>
-          </td>
-          <td>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-success" style="padding:5px 10px; font-size:0.8rem;" onclick="saveRowStatus(${item.dbId})">💾 حفظ الموقف</button>
-              <button class="btn btn-warning" style="padding:5px 10px; font-size:0.8rem;" onclick="openEditModal(${item.dbId})">✏️ تعديل</button>
+              <input type="text" id="rowCode_${item.dbId}" value="${item.patientCode || ''}" onchange="autoSaveRowStatus(${item.dbId})" placeholder="اكتب الكود..." style="padding:6px; font-weight:bold; color:var(--primary); width:100%;">
             </div>
           </td>
         </tr>
@@ -483,13 +469,7 @@
     });
   }
 
-  function toggleRowCodeBox(dbId) {
-    let selectVal = document.getElementById(`statusSelect_${dbId}`).value;
-    let codeBox = document.getElementById(`codeContainer_${dbId}`);
-    codeBox.style.display = (selectVal === 'completed') ? 'block' : 'none';
-  }
-
-  async function saveRowStatus(dbId) {
+  async function autoSaveRowStatus(dbId) {
     let item = allPreOpRecords.find(a => a.dbId === dbId);
     if (item) {
       let updatedPayload = { ...item };
@@ -497,6 +477,10 @@
 
       let statusSelect = document.getElementById(`statusSelect_${dbId}`).value;
       let opDateVal = document.getElementById(`rowOpDate_${dbId}`).value;
+      let codeContainer = document.getElementById(`codeContainer_${dbId}`);
+      
+      codeContainer.style.display = (statusSelect === 'completed') ? 'block' : 'none';
+
       let codeVal = document.getElementById(`rowCode_${dbId}`).value.trim();
 
       updatedPayload.opStatus = statusSelect;
@@ -506,7 +490,6 @@
       const { error } = await supabaseClient.from('preop_records').update({ data: updatedPayload }).eq('id', dbId);
 
       if (!error) {
-        alert("✅ تم حفظ وتحديث موقف العملية وتاريخها أونلاين بنجاح!");
         fetchPreOpFromSupabase();
       }
     }
@@ -517,7 +500,7 @@
     tbody.innerHTML = '';
 
     if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="19" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات مطابقة</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات مطابقة</td></tr>';
       return;
     }
 
@@ -525,7 +508,6 @@
       tbody.innerHTML += `
         <tr>
           <td>${item.opDate || '-'}</td>
-          <td><b style="color:var(--primary);">${item.patientCode || '-'}</b></td>
           <td>${item.governorate || '-'}</td>
           <td>${item.hospital || '-'}</td>
           <td><b>${item.patientName || '-'}</b></td>
@@ -587,7 +569,6 @@
 
     let payload = {
       opDate: document.getElementById('opDate').value,
-      patientCode: document.getElementById('patientCode').value.trim(),
       governorate: document.getElementById('governorate').value,
       hospital: document.getElementById('hospital').value,
       patientName: patientName,
@@ -605,6 +586,7 @@
       preOpPrep: document.getElementById('preOpPrep').value,
       intraOp: document.getElementById('intraOp').value,
       opStatus: 'pending',
+      patientCode: '',
       notes: ''
     };
 
@@ -618,7 +600,6 @@
   }
 
   function clearForm() {
-    document.getElementById('patientCode').value = '';
     document.getElementById('governorate').value = '';
     document.getElementById('hospital').value = '';
     document.getElementById('patientName').value = '';
@@ -643,7 +624,6 @@
     if(!item) return;
 
     document.getElementById('mOpDate').value = item.opDate || '';
-    document.getElementById('mCode').value = item.patientCode || '';
     document.getElementById('mGovernorate').value = item.governorate || '';
     document.getElementById('mHospital').value = item.hospital || '';
     document.getElementById('mName').value = item.patientName || '';
@@ -674,7 +654,6 @@
       let updatedPayload = {
         ...item,
         opDate: document.getElementById('mOpDate').value,
-        patientCode: document.getElementById('mCode').value.trim(),
         governorate: document.getElementById('mGovernorate').value,
         hospital: document.getElementById('mHospital').value,
         patientName: document.getElementById('mName').value.trim(),
