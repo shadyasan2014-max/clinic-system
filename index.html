@@ -140,11 +140,11 @@
         </select>
       </div>
       <div class="field">
-        <label>ترتيب قائمة العملاء المسجلين</label>
+        <label>ترتيب القائمة</label>
         <select id="sortOption" onchange="filterAndSortCustomers()">
-          <option value="codeAsc" selected>🔢 ترقيم الكود (تصاعدي: C-001 -> C-100)</option>
-          <option value="codeDesc">🔢 ترقيم الكود (تنازلي: C-100 -> C-001)</option>
-          <option value="dateDesc">📅 الأحدث إدخالاً أولاً</option>
+          <option value="codeAsc" selected>🔢 الكود تصاعدي (C-001 -> C-100)</option>
+          <option value="codeDesc">🔢 الكود تنازلي (C-100 -> C-001)</option>
+          <option value="dateDesc">📅 الأحدث إدخالاً</option>
         </select>
       </div>
     </div>
@@ -361,7 +361,7 @@
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   let customersList = [];
-  let currentActiveIndex = null;
+  let currentActiveDbId = null;
   let currentCustImg = "";
   let currentGuarantorImg = "";
 
@@ -388,14 +388,6 @@
     }
   }
 
-  // دالة تحويل الكود إلى رقم مجرد بدقة عالية للترتيب
-  function extractNumberFromCode(code) {
-    if (!code) return 0;
-    let str = code.toString().trim();
-    let numOnly = str.replace(/\D/g, ''); // استخراج الأرقام فقط بدون حروف
-    return numOnly ? parseInt(numOnly, 10) : 0;
-  }
-
   function filterAndSortCustomers() {
     let query = document.getElementById('searchInput').value.trim().toLowerCase();
     let filter = document.getElementById('statusFilter').value;
@@ -416,17 +408,17 @@
       result = result.filter(c => c.payType === filter);
     }
 
-    // الترتيب الصحيح للأرقام الحقيقية
+    // الترتيب باستخدام localeCompare الطبيعي للرموز والأرقام
     result.sort((a, b) => {
-      let numA = extractNumberFromCode(a.code);
-      let numB = extractNumberFromCode(b.code);
+      let codeA = a.code ? a.code.toString() : "";
+      let codeB = b.code ? b.code.toString() : "";
 
       if (sortVal === 'codeAsc') {
-        return numA - numB; // تصاعدي من الأصغر للأكبر
+        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
       } else if (sortVal === 'codeDesc') {
-        return numB - numA; // تنازلي من الأكبر للأصغر
+        return codeB.localeCompare(codeA, undefined, { numeric: true, sensitivity: 'base' });
       } else {
-        return b.dbId - a.dbId; // الأحدث إدخالاً
+        return b.dbId - a.dbId;
       }
     });
 
@@ -500,8 +492,10 @@
     fetchDataFromSupabase();
   }
 
-  function editCustomer(index) {
-    let c = customersList[index];
+  function editCustomerByDbId(dbId) {
+    let c = customersList.find(item => item.dbId === dbId);
+    if(!c) return;
+
     document.getElementById('editDbId').value = c.dbId;
     document.getElementById('formTitle').innerText = `✏️ تعديل بيانات العميل (${c.name})`;
     document.getElementById('saveBtn').innerText = "💾 حفظ التعديلات أونلاين";
@@ -560,7 +554,6 @@
     }
 
     data.forEach((c) => {
-      let realIndex = customersList.findIndex(item => item.dbId === c.dbId);
       let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
       let remaining = c.total - totalPaid;
       
@@ -577,16 +570,18 @@
         <td>${c.elite}</td>
         <td>${badge}</td>
         <td>
-          <button class="btn" style="padding: 5px 10px; font-size: 0.8rem;" onclick="openCustomerModal(${realIndex})">📂 الحساب</button>
-          <button class="btn btn-edit" style="padding: 5px 10px; font-size: 0.8rem; margin-top: 4px;" onclick="editCustomer(${realIndex})">✏️ تعديل</button>
+          <button class="btn" style="padding: 5px 10px; font-size: 0.8rem;" onclick="openCustomerModalByDbId(${c.dbId})">📂 الحساب</button>
+          <button class="btn btn-edit" style="padding: 5px 10px; font-size: 0.8rem; margin-top: 4px;" onclick="editCustomerByDbId(${c.dbId})">✏️ تعديل</button>
         </td>
       </tr>`;
     });
   }
 
-  function openCustomerModal(index) {
-    currentActiveIndex = index;
-    let c = customersList[index];
+  function openCustomerModalByDbId(dbId) {
+    currentActiveDbId = dbId;
+    let c = customersList.find(item => item.dbId === dbId);
+    if(!c) return;
+
     let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
     let remaining = c.total - totalPaid;
 
@@ -620,7 +615,6 @@
 
   function closeModal() {
     document.getElementById('customerModal').style.display = 'none';
-    filterAndSortCustomers();
   }
 
   async function addInstallmentToCurrentCustomer() {
@@ -632,15 +626,16 @@
       return;
     }
 
-    let c = customersList[currentActiveIndex];
+    let c = customersList.find(item => item.dbId === currentActiveDbId);
+    if(!c) return;
+
     if(!c.history) c.history = [];
     c.history.push({ date: date, amount: amount, type: 'قسط مسدد' });
 
-    let dbId = c.dbId;
     let payload = { ...c };
     delete payload.dbId;
 
-    const { error } = await supabaseClient.from('customers').update({ data: payload }).eq('id', dbId);
+    const { error } = await supabaseClient.from('customers').update({ data: payload }).eq('id', currentActiveDbId);
 
     document.getElementById('instAmount').value = '';
     document.getElementById('instDate').value = '';
@@ -653,7 +648,9 @@
   }
 
   function printCustomerReceipt() {
-    let c = customersList[currentActiveIndex];
+    let c = customersList.find(item => item.dbId === currentActiveDbId);
+    if(!c) return;
+
     let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
     let remaining = c.total - totalPaid;
 
