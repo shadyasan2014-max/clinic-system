@@ -142,8 +142,8 @@
       <div class="field">
         <label>ترتيب قائمة العملاء المسجلين</label>
         <select id="sortOption" onchange="filterAndSortCustomers()">
-          <option value="codeAsc" selected>🔢 ترقيم الكود (من الأصغر للأكبر 1 -> 100)</option>
-          <option value="codeDesc">🔢 ترقيم الكود (من الأكبر للأصغر 100 -> 1)</option>
+          <option value="codeAsc" selected>🔢 ترقيم الكود (تصاعدي: C-001 -> C-100)</option>
+          <option value="codeDesc">🔢 ترقيم الكود (تنازلي: C-100 -> C-001)</option>
           <option value="dateDesc">📅 الأحدث إدخالاً أولاً</option>
         </select>
       </div>
@@ -374,7 +374,7 @@
     let tbody = document.getElementById('customersTableBody');
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب وسحب البيانات المسجلة أونلاين...</td></tr>';
 
-    const { data, error } = await supabaseClient.from('customers').select('*').order('id', { ascending: false });
+    const { data, error } = await supabaseClient.from('customers').select('*');
 
     if (error) {
       console.error(error);
@@ -388,10 +388,12 @@
     }
   }
 
-  function parseCodeNum(code) {
-    if (!code) return Infinity;
-    let match = code.toString().match(/\d+/);
-    return match ? parseInt(match[0], 10) : Infinity;
+  // دالة تحويل الكود إلى رقم مجرد بدقة عالية للترتيب
+  function extractNumberFromCode(code) {
+    if (!code) return 0;
+    let str = code.toString().trim();
+    let numOnly = str.replace(/\D/g, ''); // استخراج الأرقام فقط بدون حروف
+    return numOnly ? parseInt(numOnly, 10) : 0;
   }
 
   function filterAndSortCustomers() {
@@ -414,18 +416,17 @@
       result = result.filter(c => c.payType === filter);
     }
 
+    // الترتيب الصحيح للأرقام الحقيقية
     result.sort((a, b) => {
-      let codeA = parseCodeNum(a.code);
-      let codeB = parseCodeNum(b.code);
+      let numA = extractNumberFromCode(a.code);
+      let numB = extractNumberFromCode(b.code);
 
       if (sortVal === 'codeAsc') {
-        return codeA - codeB;
+        return numA - numB; // تصاعدي من الأصغر للأكبر
       } else if (sortVal === 'codeDesc') {
-        if (codeA === Infinity) return 1;
-        if (codeB === Infinity) return -1;
-        return codeB - codeA;
+        return numB - numA; // تنازلي من الأكبر للأصغر
       } else {
-        return b.dbId - a.dbId;
+        return b.dbId - a.dbId; // الأحدث إدخالاً
       }
     });
 
