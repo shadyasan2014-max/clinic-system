@@ -20,8 +20,41 @@
   
   * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
   body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
-  .container { max-width: 1100px; margin: 0 auto; }
+  .container { max-width: 1100px; margin: 0 auto; display: none; }
   
+  /* Auth Screen Overlay */
+  #authOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #0f4c5c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .auth-box {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  }
+  .auth-box h2 { color: #0f4c5c; margin-bottom: 10px; font-size: 1.3rem; }
+  .auth-box p { font-size: 0.88rem; color: #64748b; margin-bottom: 20px; }
+  .auth-box input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .auth-box input:focus { border-color: var(--primary); }
+
   header { 
     background: #0f4c5c; 
     color: white; 
@@ -79,7 +112,7 @@
   .badge-cash { background: #dcfce7; color: #16a34a; }
 
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
-  .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 750px; width: 100%; max-height: 90vh; overflow-y: auto; }
+  .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 850px; width: 100%; max-height: 90vh; overflow-y: auto; }
 
   .img-preview { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); margin-top: 6px; display: none; }
 
@@ -101,7 +134,19 @@
 </head>
 <body>
 
-<div class="container">
+<!-- Lock Screen for Authorization -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <h2>🔑 تسجيل الدخول لنظام الحسابات</h2>
+    <p>يرجى كتابة اسم المستخدم وكلمة السر المخصصة لك</p>
+    <input type="text" id="userInput" placeholder="اسم المستخدم (Username)...">
+    <input type="password" id="passInput" placeholder="كلمة السر (Password)..." onkeypress="if(event.key==='Enter') loginUser()">
+    <button class="btn" onclick="loginUser()">دخول النظام 🔓</button>
+    <div id="authError" style="color: var(--danger); font-size: 0.85rem; margin-top: 10px; display: none;">❌ بيانات الدخول غير صحيحة!</div>
+  </div>
+</div>
+
+<div class="container" id="mainContainer">
   <!-- Header Branding with Logo -->
   <header>
     <div class="brand-logo">
@@ -113,8 +158,11 @@
         <p>نظام إدارة وتخزين بيانات العملاء والحسابات</p>
       </div>
     </div>
-    <div style="font-size: 0.85rem; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px;">
-      عيادة جراحة السمنة
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
+      <button onclick="openLogsModal()" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">📜 سجل الحركة</button>
+      <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display:none;">👤 المستخدمين</button>
+      <button onclick="logoutUser()" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">🔒 خروج</button>
     </div>
   </header>
 
@@ -272,7 +320,7 @@
 
   <!-- Directory Table -->
   <div class="card">
-    <div class="card-title" style="display:flex; justify-style:space-between; align-items:center;">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
       <span>👥 قائمة العملاء المسجلين</span>
       <button onclick="sortCustomersByCodeAsc()" class="btn btn-sort" style="width:auto; padding:4px 12px; font-size:0.8rem;">🔃 إعادة ترتيب الجدول</button>
     </div>
@@ -347,6 +395,48 @@
   </div>
 </div>
 
+<!-- Modal Audit Logs -->
+<div id="logsModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات النظام (Audit Trail)</h3>
+      <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>الوقت والتاريخ</th>
+          <th>الموظف / المستخدم</th>
+          <th>نوع الحركة</th>
+          <th>تفاصيل الحركة</th>
+        </tr>
+      </thead>
+      <tbody id="logsTableBody">
+        <!-- Audit logs rows -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Manage Users (Admin Only) -->
+<div id="usersModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">👤 إدارة مستخدمي النظام والصلاحيات</h3>
+      <button onclick="closeUsersModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px;">
+      <h4 style="margin-bottom: 10px;">➕ إضافة مستخدم جديد:</h4>
+      <div class="grid">
+        <div class="field"><label>اسم المستخدم (اليوزر)</label><input type="text" id="newUsername" placeholder="مثال: mona"></div>
+        <div class="field"><label>كلمة السر</label><input type="text" id="newPassword" placeholder="مثال: 123456"></div>
+        <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: م. منى الحسابات"></div>
+      </div>
+      <button class="btn btn-success" onclick="addNewUser()">إضافة المستخدم أونلاين</button>
+    </div>
+  </div>
+</div>
+
 <!-- Printable Section Template with Logo -->
 <div id="printReceiptArea" style="display: none;">
   <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 15px;">
@@ -368,6 +458,7 @@
   const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  let currentUser = null;
   let customersList = [];
   let currentActiveDbId = null;
   let currentCustImg = "";
@@ -375,8 +466,105 @@
 
   window.onload = function() {
     handlePaymentTypeChange();
-    fetchDataFromSupabase();
+    let savedUser = localStorage.getItem('activeSystemUser');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      initUserSession();
+    }
   };
+
+  async function loginUser() {
+    let u = document.getElementById('userInput').value.trim();
+    let p = document.getElementById('passInput').value.trim();
+    let err = document.getElementById('authError');
+
+    if (!u || !p) return err.style.display = 'block';
+
+    const { data, error } = await supabaseClient.from('system_users').select('*').eq('username', u).eq('password', p);
+
+    if (data && data.length > 0) {
+      currentUser = data[0];
+      localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
+      err.style.display = 'none';
+      initUserSession();
+      logActivity('تسجيل دخول', 'قام الموظف بتسجيل الدخول للنظام بنجاح');
+    } else {
+      err.style.display = 'block';
+    }
+  }
+
+  function initUserSession() {
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('mainContainer').style.display = 'block';
+    document.getElementById('userBadge').innerText = `👤 المستخدم: ${currentUser.full_name}`;
+    if (currentUser.role === 'admin') {
+      document.getElementById('manageUsersBtn').style.display = 'inline-block';
+    }
+    fetchDataFromSupabase();
+  }
+
+  function logoutUser() {
+    if(currentUser) logActivity('تسجيل خروج', 'قام الموظف بتسجيل الخروج من النظام');
+    localStorage.removeItem('activeSystemUser');
+    currentUser = null;
+    document.getElementById('mainContainer').style.display = 'none';
+    document.getElementById('authOverlay').style.display = 'flex';
+  }
+
+  async function logActivity(actionType, details) {
+    if (!currentUser) return;
+    await supabaseClient.from('audit_logs').insert([{
+      username: currentUser.username,
+      full_name: currentUser.full_name,
+      action_type: actionType,
+      details: details
+    }]);
+  }
+
+  async function openLogsModal() {
+    let tbody = document.getElementById('logsTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">⏳ جاري جلب سجل الحركة...</td></tr>';
+    document.getElementById('logsModal').style.display = 'flex';
+
+    const { data, error } = await supabaseClient.from('audit_logs').select('*').order('id', { ascending: false }).limit(100);
+
+    if (!error && data) {
+      tbody.innerHTML = '';
+      data.forEach(log => {
+        let dateStr = new Date(log.created_at).toLocaleString('ar-EG');
+        tbody.innerHTML += `
+          <tr>
+            <td>${dateStr}</td>
+            <td><b>${log.full_name}</b> (${log.username})</td>
+            <td><b style="color:var(--primary);">${log.action_type}</b></td>
+            <td>${log.details}</td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
+  function openUsersModal() { document.getElementById('usersModal').style.display = 'flex'; }
+  function closeUsersModal() { document.getElementById('usersModal').style.display = 'none'; }
+
+  async function addNewUser() {
+    let username = document.getElementById('newUsername').value.trim();
+    let password = document.getElementById('newPassword').value.trim();
+    let full_name = document.getElementById('newFullName').value.trim();
+
+    if(!username || !password || !full_name) return alert('برجاء كتابة كل البيانات المطلوبة');
+
+    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: 'user' }]);
+
+    if(!error) {
+      alert('✅ تم إضافة المستخدم أونلاين بنجاح!');
+      logActivity('إضافة مستخدم', `تم إنشاء يوزر جديد: ${full_name} (${username})`);
+      closeUsersModal();
+    } else {
+      alert('⚠️ تعذر الإضافة، قد يكون اسم المستخدم مكرراً.');
+    }
+  }
 
   async function fetchDataFromSupabase() {
     let tbody = document.getElementById('customersTableBody');
@@ -491,13 +679,19 @@
       if(!currentGuarantorImg) customerPayload.gImg = activeCust.gImg || "";
 
       const { error } = await supabaseClient.from('customers').update({ data: customerPayload }).eq('id', editDbId);
-      if(!error) alert("✅ تم تعديل بيانات العميل أونلاين بنجاح!");
+      if(!error) {
+        alert("✅ تم تعديل بيانات العميل أونلاين بنجاح!");
+        logActivity('تعديل عميل', `تم تعديل بيانات العميل: ${name} (كود: ${code})`);
+      }
     } else {
       customerPayload.history = [
         { date: opDate, amount: initialPaid, type: payType === 'cash' ? 'دفعة كاش كاملة' : 'مقدم العملية' }
       ];
       const { error } = await supabaseClient.from('customers').insert([{ data: customerPayload }]);
-      if(!error) alert("✅ تم حفظ العميل أونلاين بنجاح!");
+      if(!error) {
+        alert("✅ تم حفظ العميل أونلاين بنجاح!");
+        logActivity('إضافة عميل جديد', `تم تسجيل عميل جديد: ${name} (كود: ${code})`);
+      }
     }
 
     cancelEdit();
@@ -654,6 +848,7 @@
     
     if(!error) {
       alert('✅ تمت إضافة القسط وخصمه أونلاين بنجاح!');
+      logActivity('تسديد قسط', `تم تحصيل قسط بقيمة ${amount} ج.م للعميل: ${c.name} (${c.code})`);
       fetchDataFromSupabase();
       closeModal();
     }
@@ -732,6 +927,8 @@
 
     document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
     document.getElementById('pContent').innerHTML = printHTML;
+
+    logActivity('طباعة تقرير', `تم طباعة كشف حساب تفصيلي للعميل: ${c.name} (${c.code})`);
 
     document.getElementById('printReceiptArea').style.display = 'block';
     window.print();
