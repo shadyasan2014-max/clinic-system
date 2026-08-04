@@ -140,11 +140,11 @@
         </select>
       </div>
       <div class="field">
-        <label>ترتيب حسب الكود</label>
+        <label>ترتيب قائمة العملاء المسجلين</label>
         <select id="sortOption" onchange="filterAndSortCustomers()">
-          <option value="codeAsc">🔢 ترقيم الكود (من الأصغر للأكبر)</option>
-          <option value="codeDesc">🔢 ترقيم الكود (من الأكبر للأصغر)</option>
-          <option value="dateDesc" selected>📅 الأحدث إدخالاً أولاً</option>
+          <option value="codeAsc" selected>🔢 ترقيم الكود (من الأصغر للأكبر 1 -> 100)</option>
+          <option value="codeDesc">🔢 ترقيم الكود (من الأكبر للأصغر 100 -> 1)</option>
+          <option value="dateDesc">📅 الأحدث إدخالاً أولاً</option>
         </select>
       </div>
     </div>
@@ -267,7 +267,7 @@
 
   <!-- Directory Table -->
   <div class="card">
-    <div class="card-title">👥 قائمة العملاء المسجلين بالحسابات</div>
+    <div class="card-title">👥 قائمة العملاء المسجلين</div>
     <table>
       <thead>
         <tr>
@@ -415,13 +415,12 @@
     }
 
     result.sort((a, b) => {
+      let codeA = parseCodeNum(a.code);
+      let codeB = parseCodeNum(b.code);
+
       if (sortVal === 'codeAsc') {
-        let codeA = parseCodeNum(a.code);
-        let codeB = parseCodeNum(b.code);
         return codeA - codeB;
       } else if (sortVal === 'codeDesc') {
-        let codeA = parseCodeNum(a.code);
-        let codeB = parseCodeNum(b.code);
         if (codeA === Infinity) return 1;
         if (codeB === Infinity) return -1;
         return codeB - codeA;
