@@ -425,7 +425,7 @@
     <h4 style="margin-bottom: 10px; color: var(--primary);">📋 بنود وتكاليف الفاتورة (قابلة للتعديل اليدوي ج.م):</h4>
     <div class="grid">
       <div class="field">
-        <label>1. أجر الطبيب الجراحة و تيم الجراحة</label>
+        <label>1. أجر الطبيب والجراحة</label>
         <input type="number" id="invSurgeonFee" placeholder="0" oninput="calculateInvoiceTotal()">
       </div>
       <div class="field">
@@ -516,7 +516,7 @@
     </div>
     <div>
       <h2 style="margin:0;"> د. بهاء شكري - Dr. Bahaa Shoukry</h2>
-      <p style="margin:2px 0;">استشاري جراحات العامه و السمنة والمناظير</p>
+      <p style="margin:2px 0;">استشاري جراحات العامة و السمنة والمناظيرالمتقدمه </p>
       <p id="pDate" style="margin-top: 5px; font-size: 0.9rem;"></p>
     </div>
   </div>
@@ -737,7 +737,7 @@
     let gPhone = document.getElementById('gPhone').value || '';
 
     let customerPayload = {
-      code, name, phone, nationalId, type, hospital, gov, elite, company, total, initialPaid, payType,
+      code, name, phone, nationalId, type, hospital, gov, elite, company, total, initialPaid, payType, opDate,
       gName, gId, gPhone,
       custImg: currentCustImg,
       gImg: currentGuarantorImg
@@ -786,6 +786,7 @@
     document.getElementById('hospital').value = c.hospital || '';
     document.getElementById('governorate').value = c.gov || '';
     document.getElementById('eliteCard').value = c.elite;
+    document.getElementById('opDate').value = c.opDate || '';
     document.getElementById('paymentType').value = c.payType;
     document.getElementById('companyName').value = c.company || '';
     document.getElementById('totalPrice').value = c.total;
@@ -992,7 +993,11 @@
           </tr>
           <tr>
             <td style="padding:4px; border:none;"><b>الإجراء الطبي:</b> ${c.type}</td>
+            <td style="padding:4px; border:none;"><b>تاريخ العملية:</b> ${c.opDate || '-'}</td>
+          </tr>
+          <tr>
             <td style="padding:4px; border:none;"><b>المستشفى:</b> ${c.hospital || '-'} (${c.gov || '-'})</td>
+            <td style="padding:4px; border:none;"><b>كارت إيليت:</b> ${c.elite || 'بدون كارت'}</td>
           </tr>
         </table>
 
@@ -1095,7 +1100,7 @@
         <p><b>كود العميل:</b> ${c.code}</p>
         <p><b>اسم العميل:</b> ${c.name}</p>
         <p><b>رقم التليفون:</b> ${c.phone} | <b>الرقم القومي:</b> ${c.nationalId || '-'}</p>
-        <p><b>نوع العملية:</b> ${c.type} | <b>المستشفى:</b> ${c.hospital || '-'} (${c.gov || '-'})</p>
+        <p><b>نوع العملية:</b> ${c.type} | <b>تاريخ العملية:</b> ${c.opDate || '-'} | <b>المستشفى:</b> ${c.hospital || '-'} (${c.gov || '-'})</p>
         <p><b>كارت إيليت:</b> ${c.elite} | <b>نظام الدفع:</b> ${payText}</p>
         <hr style="margin:15px 0; border:1px solid #000;">
     `;
