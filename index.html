@@ -99,6 +99,8 @@
   .btn-print { background: #475569; }
   .btn-edit { background: #d97706; }
   .btn-edit:hover { background: #b45309; }
+  .btn-invoice { background: #16a34a; }
+  .btn-invoice:hover { background: #15803d; }
   .btn-sort { background: #0284c7; }
   .btn-sort:hover { background: #0369a1; }
   
@@ -392,6 +394,68 @@
     <div style="margin-top: 20px; display: flex; gap: 10px;">
       <button class="btn btn-print" onclick="printCustomerReceipt()">🖨️ طباعة إيصال / كشف حساب تفصيلي</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal Invoice Generator (الفاتورة) -->
+<div id="invoiceModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 id="invModalTitle" style="color: var(--primary);">🧾 إعداد فاتورة رسمية للعميل</h3>
+      <button onclick="closeInvoiceModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+
+    <div style="background: #f0fdf4; border: 1px solid #86efac; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+      <div class="field">
+        <label style="font-weight: bold; color: #166534;">نوع الفاتورة:</label>
+        <select id="invTaxType" onchange="calculateInvoiceTotal()" style="font-weight: bold; padding: 8px;">
+          <option value="non_taxable" selected>📄 فاتورة غير شاملة الضريبة</option>
+          <option value="taxable">🧾 فاتورة ضريبية (مضاف إليها 14% ضريبة قيمة مضافة)</option>
+        </select>
+      </div>
+    </div>
+
+    <h4 style="margin-bottom: 10px; color: var(--primary);">📋 بنود وتفاصيل التكاليف الفاتورة (ج.م):</h4>
+    <div class="grid">
+      <div class="field">
+        <label>1. أجر الطبيب والجراحة</label>
+        <input type="number" id="invSurgeonFee" placeholder="0" oninput="calculateInvoiceTotal()">
+      </div>
+      <div class="field">
+        <label>2. أجر التخدير</label>
+        <input type="number" id="invAnesthesiaFee" placeholder="0" oninput="calculateInvoiceTotal()">
+      </div>
+      <div class="field">
+        <label>3. فتح غرفة العمليات</label>
+        <input type="number" id="invOrFee" placeholder="0" oninput="calculateInvoiceTotal()">
+      </div>
+      <div class="field">
+        <label>4. الإقامة بالمستشفى</label>
+        <input type="number" id="invStayFee" placeholder="0" oninput="calculateInvoiceTotal()">
+      </div>
+      <div class="field">
+        <label>5. المستلزمات والأدوية</label>
+        <input type="number" id="invSuppliesFee" placeholder="0" oninput="calculateInvoiceTotal()">
+      </div>
+    </div>
+
+    <!-- Invoice Summary Box -->
+    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin: 15px 0;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+        <span>المبلغ الصافي للبنود:</span>
+        <b id="invSubtotalVal">0 ج.م</b>
+      </div>
+      <div id="invTaxRow" style="display: none; justify-content: space-between; margin-bottom: 6px; color: var(--danger);">
+        <span>قيمة ضريبة القيمة المضافة (14%):</span>
+        <b id="invTaxVal">0 ج.م</b>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 1.1rem; border-top: 1px solid var(--border); padding-top: 8px; color: var(--primary);">
+        <span><b>الإجمالي النهائي للفاتورة:</b></span>
+        <b id="invGrandTotalVal">0 ج.م</b>
+      </div>
+    </div>
+
+    <button class="btn btn-invoice" onclick="printCustomerInvoice()">🖨️ معاينة وتوليد الفاتورة للطباعة</button>
   </div>
 </div>
 
@@ -776,8 +840,9 @@
         <td>${c.elite}</td>
         <td>${badge}</td>
         <td>
-          <button class="btn" style="padding: 5px 10px; font-size: 0.8rem;" onclick="openCustomerModalByDbId(${c.dbId})">📂 الحساب</button>
-          <button class="btn btn-edit" style="padding: 5px 10px; font-size: 0.8rem; margin-top: 4px;" onclick="editCustomerByDbId(${c.dbId})">✏️ تعديل</button>
+          <button class="btn" style="padding: 4px 8px; font-size: 0.78rem;" onclick="openCustomerModalByDbId(${c.dbId})">📂 الحساب</button>
+          <button class="btn btn-invoice" style="padding: 4px 8px; font-size: 0.78rem; margin-top: 3px;" onclick="openInvoiceModalByDbId(${c.dbId})">🧾 الفاتورة</button>
+          <button class="btn btn-edit" style="padding: 4px 8px; font-size: 0.78rem; margin-top: 3px;" onclick="editCustomerByDbId(${c.dbId})">✏️ تعديل</button>
         </td>
       </tr>`;
     });
@@ -821,6 +886,131 @@
 
   function closeModal() {
     document.getElementById('customerModal').style.display = 'none';
+  }
+
+  /* Invoice System Functionalities */
+  function openInvoiceModalByDbId(dbId) {
+    currentActiveDbId = dbId;
+    let c = customersList.find(item => item.dbId === dbId);
+    if(!c) return;
+
+    document.getElementById('invModalTitle').innerText = `🧾 إعداد فاتورة رسمية للعميل: ${c.name} (${c.code})`;
+    
+    // التوزيع المبدئي المباشر من سعر العملية المقيد بالسيستم
+    let total = c.total || 0;
+    document.getElementById('invSurgeonFee').value = Math.round(total * 0.50);
+    document.getElementById('invAnesthesiaFee').value = Math.round(total * 0.15);
+    document.getElementById('invOrFee').value = Math.round(total * 0.15);
+    document.getElementById('invStayFee').value = Math.round(total * 0.10);
+    document.getElementById('invSuppliesFee').value = Math.round(total * 0.10);
+
+    calculateInvoiceTotal();
+    document.getElementById('invoiceModal').style.display = 'flex';
+  }
+
+  function closeInvoiceModal() {
+    document.getElementById('invoiceModal').style.display = 'none';
+  }
+
+  function calculateInvoiceTotal() {
+    let surgeon = parseFloat(document.getElementById('invSurgeonFee').value) || 0;
+    let anesthesia = parseFloat(document.getElementById('invAnesthesiaFee').value) || 0;
+    let or = parseFloat(document.getElementById('invOrFee').value) || 0;
+    let stay = parseFloat(document.getElementById('invStayFee').value) || 0;
+    let supplies = parseFloat(document.getElementById('invSuppliesFee').value) || 0;
+
+    let subtotal = surgeon + anesthesia + or + stay + supplies;
+    let isTaxable = document.getElementById('invTaxType').value === 'taxable';
+    let taxVal = isTaxable ? (subtotal * 0.14) : 0;
+    let grandTotal = subtotal + taxVal;
+
+    document.getElementById('invSubtotalVal').innerText = subtotal.toLocaleString() + ' ج.م';
+    document.getElementById('invTaxVal').innerText = taxVal.toLocaleString() + ' ج.م';
+    document.getElementById('invGrandTotalVal').innerText = grandTotal.toLocaleString() + ' ج.م';
+
+    document.getElementById('invTaxRow').style.display = isTaxable ? 'flex' : 'none';
+  }
+
+  function printCustomerInvoice() {
+    let c = customersList.find(item => item.dbId === currentActiveDbId);
+    if(!c) return;
+
+    let surgeon = parseFloat(document.getElementById('invSurgeonFee').value) || 0;
+    let anesthesia = parseFloat(document.getElementById('invAnesthesiaFee').value) || 0;
+    let or = parseFloat(document.getElementById('invOrFee').value) || 0;
+    let stay = parseFloat(document.getElementById('invStayFee').value) || 0;
+    let supplies = parseFloat(document.getElementById('invSuppliesFee').value) || 0;
+
+    let subtotal = surgeon + anesthesia + or + stay + supplies;
+    let taxType = document.getElementById('invTaxType').value;
+    let isTaxable = taxType === 'taxable';
+    let taxVal = isTaxable ? (subtotal * 0.14) : 0;
+    let grandTotal = subtotal + taxVal;
+
+    let invoiceTypeTitle = isTaxable ? 'فاتورة ضريبية رسمية (شاملة ضريبة القيمة المضافة 14%)' : 'فاتورة مبيعات وخدمات طبية';
+
+    let printHTML = `
+      <div style="font-size:1rem; line-height:1.6; color:#000;">
+        <div style="text-align:center; margin-bottom:15px; border-bottom:1px solid #000; padding-bottom:8px;">
+          <h3 style="margin:0; font-size:1.3rem; color:#0f4c5c;">${invoiceTypeTitle}</h3>
+          <p style="margin:2px 0; font-size:0.85rem;">رقم الفاتورة: INV-${c.code}-${Date.now().toString().slice(-4)}</p>
+        </div>
+
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.95rem;">
+          <tr>
+            <td style="padding:4px; border:none;"><b>كود العميل:</b> ${c.code}</td>
+            <td style="padding:4px; border:none;"><b>اسم المريض:</b> ${c.name}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px; border:none;"><b>الرقم القومي:</b> ${c.nationalId || '-'}</td>
+            <td style="padding:4px; border:none;"><b>رقم الهاتف:</b> ${c.phone}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px; border:none;"><b>الإجراء الطبي:</b> ${c.type}</td>
+            <td style="padding:4px; border:none;"><b>المستشفى:</b> ${c.hospital || '-'} (${c.gov || '-'})</td>
+          </tr>
+        </table>
+
+        <h4 style="margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:4px;">تفاصيل التكاليف والبنود:</h4>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
+          <thead>
+            <tr style="background:#f1f5f9;">
+              <th style="border:1px solid #000; padding:8px; text-align:right;">#</th>
+              <th style="border:1px solid #000; padding:8px; text-align:right;">البيان / الخدمة الطبية</th>
+              <th style="border:1px solid #000; padding:8px; text-align:left;">المبلغ (ج.م)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="border:1px solid #000; padding:6px;">1</td><td style="border:1px solid #000; padding:6px;">أجر الطبيب والجراحة</td><td style="border:1px solid #000; padding:6px; text-align:left;">${surgeon.toLocaleString()} ج.م</td></tr>
+            <tr><td style="border:1px solid #000; padding:6px;">2</td><td style="border:1px solid #000; padding:6px;">أجر التخدير</td><td style="border:1px solid #000; padding:6px; text-align:left;">${anesthesia.toLocaleString()} ج.م</td></tr>
+            <tr><td style="border:1px solid #000; padding:6px;">3</td><td style="border:1px solid #000; padding:6px;">فتح غرفة العمليات والتجهيز</td><td style="border:1px solid #000; padding:6px; text-align:left;">${or.toLocaleString()} ج.م</td></tr>
+            <tr><td style="border:1px solid #000; padding:6px;">4</td><td style="border:1px solid #000; padding:6px;">الإقامة بالمستشفى والتمريض</td><td style="border:1px solid #000; padding:6px; text-align:left;">${stay.toLocaleString()} ج.م</td></tr>
+            <tr><td style="border:1px solid #000; padding:6px;">5</td><td style="border:1px solid #000; padding:6px;">المستلزمات والأدوية الطبية</td><td style="border:1px solid #000; padding:6px; text-align:left;">${supplies.toLocaleString()} ج.م</td></tr>
+          </tbody>
+        </table>
+
+        <div style="width:50%; margin-right:auto; text-align:left; font-size:1rem; line-height:1.8;">
+          <p style="margin:0; border-bottom:1px solid #eee;"><b>المبلغ الصافي:</b> ${subtotal.toLocaleString()} ج.م</p>
+          ${isTaxable ? `<p style="margin:0; border-bottom:1px solid #eee; color:red;"><b>ضريبة القيمة المضافة (14%):</b> ${taxVal.toLocaleString()} ج.م</p>` : ''}
+          <p style="margin:5px 0 0 0; font-size:1.15rem; color:#0f4c5c;"><b>الإجمالي المستحق:</b> ${grandTotal.toLocaleString()} ج.م</p>
+        </div>
+
+        <div style="margin-top:30px; display:flex; justify-content:space-between; padding-top:15px; border-top:1px dashed #000; font-size:0.88rem;">
+          <div><b>اسم أصدار الفاتورة:</b> ${currentUser ? currentUser.full_name : 'إدارة العيادة'}</div>
+          <div><b>توقيع الحسابات / الشئون المالية:</b> ..........................</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('pDate').innerText = 'تاريخ الإصدار: ' + new Date().toLocaleDateString('ar-EG');
+    document.getElementById('pContent').innerHTML = printHTML;
+
+    logActivity('طباعة فاتورة', `تم اصدار فاتورة للعميل: ${c.name} (${c.code}) بقيمة إجمالية: ${grandTotal.toLocaleString()} ج.م (${isTaxable?'ضريبية':'غير ضريبية'})`);
+
+    closeInvoiceModal();
+    document.getElementById('printReceiptArea').style.display = 'block';
+    window.print();
+    document.getElementById('printReceiptArea').style.display = 'none';
   }
 
   async function addInstallmentToCurrentCustomer() {
