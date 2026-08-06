@@ -54,7 +54,7 @@
   .header-text p { font-size: 0.82rem; color: var(--accent-lime); font-weight: 500; }
   
   .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.04); }
-  .card-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); margin-bottom: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .card-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); margin-bottom: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
   
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
@@ -191,6 +191,60 @@
     <button class="btn btn-success" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 0.95rem;" onclick="savePreOpRecord()">💾 حفظ بيانات الحالة وإدراجها بالشيت</button>
   </div>
 
+  <!-- 🔍 كارت فلترة الشيت الطبي الكامل بالتاريخ (قبل الشيت الطبي مباشرة) -->
+  <div class="card" style="background: #fffbebf7; border: 2px solid #fde68a;">
+    <div class="card-title" style="color: #b45309; border-color: #fde68a;">
+      <span>📅 تصفية الشيت الطبي الكامل بتاريخ محدد</span>
+    </div>
+    <div class="grid" style="margin-bottom: 0;">
+      <div class="field">
+        <label style="font-weight: bold; color: #92400e;">اختر تاريخ العملية لتصفية الشيت الطبي بالأسفل:</label>
+        <input type="date" id="sheetDateFilter" onchange="filterFullSheetByDate()" style="border-color: #fcd34d;">
+      </div>
+      <div class="field" style="justify-content: flex-end;">
+        <button class="btn btn-secondary" style="font-size: 0.85rem; padding: 9px 14px;" onclick="resetSheetDateFilter()">🔄 عرض كل التواريخ بالشيت</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Excel-like Daily Table Section (الشيت الطبي الكامل) -->
+  <div class="card">
+    <div class="card-title">
+      <span>📊 الشيت الطبي الكامل لحالات اليوم المحدد (Pre-Op Sheet)</span>
+      <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;" onclick="fetchPreOpFromSupabase()">🔄 تحديث البيانات</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="excel-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Governorate</th>
+            <th>Hospital</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Wt</th>
+            <th>Ht</th>
+            <th>BMI</th>
+            <th>OSAS</th>
+            <th>GERD</th>
+            <th>M.H.</th>
+            <th>Smoking</th>
+            <th>S.H.</th>
+            <th>Labs</th>
+            <th>Operation</th>
+            <th>Pre Op prep</th>
+            <th>Intra operative</th>
+            <th>تعديل</th>
+          </tr>
+        </thead>
+        <tbody id="dailyTableBody">
+          <tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- SECTION 1: Daily Operations Filter & Confirmation List -->
   <div class="card" style="background: #f0f9ff; border-color: #bae6fd;">
     <div class="card-title" style="color: #0369a1; border-color: #bae6fd;">
@@ -229,57 +283,6 @@
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
-
-  <!-- Excel-like Daily Table Section (الشيت الطبي الكامل مع خيار التصفية بالتاريخ) -->
-  <div class="card">
-    <div class="card-title">
-      <span>📊 الشيت الطبي الكامل لحالات اليوم المحدد (Pre-Op Sheet)</span>
-      <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;" onclick="fetchPreOpFromSupabase()">🔄 تحديث البيانات</button>
-    </div>
-
-    <!-- 🔍 تصفية الشيت الطبي الكامل بالتاريخ -->
-    <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #cbd5e1;">
-      <div class="grid" style="margin-bottom: 0;">
-        <div class="field">
-          <label style="font-weight: bold; color: var(--primary);">🗓️ تصفية الشيت الطبي بتاريخ العملية:</label>
-          <input type="date" id="sheetDateFilter" onchange="filterFullSheetByDate()">
-        </div>
-        <div class="field" style="justify-content: flex-end;">
-          <button class="btn btn-secondary" style="font-size: 0.85rem; padding: 8px 12px;" onclick="resetSheetDateFilter()">عرض كافة التواريخ بالشيت</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-responsive">
-      <table class="excel-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Governorate</th>
-            <th>Hospital</th>
-            <th>Name</th>
-            <th>Age</th>
-            <th>Wt</th>
-            <th>Ht</th>
-            <th>BMI</th>
-            <th>OSAS</th>
-            <th>GERD</th>
-            <th>M.H.</th>
-            <th>Smoking</th>
-            <th>S.H.</th>
-            <th>Labs</th>
-            <th>Operation</th>
-            <th>Pre Op prep</th>
-            <th>Intra operative</th>
-            <th>تعديل</th>
-          </tr>
-        </thead>
-        <tbody id="dailyTableBody">
-          <tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
 
