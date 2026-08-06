@@ -191,45 +191,7 @@
     <button class="btn btn-success" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 0.95rem;" onclick="savePreOpRecord()">💾 حفظ بيانات الحالة وإدراجها بالشيت</button>
   </div>
 
-  <!-- Excel-like Daily Table Section -->
-  <div class="card">
-    <div class="card-title">
-      <span>📊 الشيت الطبي الكامل لحالات اليوم المحدد (Pre-Op Sheet)</span>
-      <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;" onclick="fetchPreOpFromSupabase()">🔄 تحديث البيانات</button>
-    </div>
-
-    <div class="table-responsive">
-      <table class="excel-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Governorate</th>
-            <th>Hospital</th>
-            <th>Name</th>
-            <th>Age</th>
-            <th>Wt</th>
-            <th>Ht</th>
-            <th>BMI</th>
-            <th>OSAS</th>
-            <th>GERD</th>
-            <th>M.H.</th>
-            <th>Smoking</th>
-            <th>S.H.</th>
-            <th>Labs</th>
-            <th>Operation</th>
-            <th>Pre Op prep</th>
-            <th>Intra operative</th>
-            <th>تعديل</th>
-          </tr>
-        </thead>
-        <tbody id="dailyTableBody">
-          <tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- SECTION 1: Daily Operations Filter & Confirmation List -->
+  <!-- SECTION 1: Daily Operations Filter & Confirmation List (تم نقله هنا) -->
   <div class="card" style="background: #f0f9ff; border-color: #bae6fd;">
     <div class="card-title" style="color: #0369a1; border-color: #bae6fd;">
       <span>📅 الجزء الأول: تصفية وتأكيد يومية العمليات (تأكيد إجراء العملية ورابط كود الحسابات)</span>
@@ -267,6 +229,44 @@
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- Excel-like Daily Table Section (الشيت الطبي الكامل) -->
+  <div class="card">
+    <div class="card-title">
+      <span>📊 الشيت الطبي الكامل لحالات اليوم المحدد (Pre-Op Sheet)</span>
+      <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;" onclick="fetchPreOpFromSupabase()">🔄 تحديث البيانات</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="excel-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Governorate</th>
+            <th>Hospital</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Wt</th>
+            <th>Ht</th>
+            <th>BMI</th>
+            <th>OSAS</th>
+            <th>GERD</th>
+            <th>M.H.</th>
+            <th>Smoking</th>
+            <th>S.H.</th>
+            <th>Labs</th>
+            <th>Operation</th>
+            <th>Pre Op prep</th>
+            <th>Intra operative</th>
+            <th>تعديل</th>
+          </tr>
+        </thead>
+        <tbody id="dailyTableBody">
+          <tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
