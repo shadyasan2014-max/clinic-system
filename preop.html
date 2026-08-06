@@ -1,687 +1,1374 @@
 <!DOCTYPE html>
+
 <html lang="ar" dir="rtl">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>نظام ما قبل العملية (Pre-Op) - د. بهاء شكري</title>
+
 <!-- Supabase SDK -->
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
+
   :root {
+
     --primary: #0f4c5c;
+
     --primary-hover: #0a3641;
+
     --accent-gold: #d97706;
+
     --accent-lime: #84cc16;
+
     --bg: #f8fafc;
+
     --card-bg: #ffffff;
+
     --text: #1e293b;
+
     --border: #cbd5e1;
+
     --success: #16a34a;
+
     --warning: #ca8a04;
+
     --danger: #dc2626;
+
   }
+
   
+
   * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+
   body { background-color: var(--bg); color: var(--text); padding: 15px; line-height: 1.4; }
+
   .container { max-width: 100%; margin: 0 auto; }
+
   
+
   header { 
+
     background: var(--primary); 
+
     color: white; 
+
     padding: 16px 20px; 
+
     border-radius: 12px; 
+
     margin-bottom: 20px; 
+
     display: flex;
+
     align-items: center;
+
     justify-content: space-between;
+
     box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); 
+
     border-bottom: 3px solid var(--accent-lime);
+
   }
+
   .brand-logo { display: flex; align-items: center; gap: 14px; }
+
   .logo-box {
+
     width: 55px;
+
     height: 55px;
+
     border-radius: 50%;
+
     border: 2px solid var(--accent-lime);
+
     background: #fff;
+
     display: flex;
+
     align-items: center;
+
     justify-content: center;
+
     overflow: hidden;
+
   }
+
   .logo-box img { width: 100%; height: 100%; object-fit: cover; }
+
   .header-text h1 { font-size: 1.25rem; margin-bottom: 2px; color: #ffffff; }
+
   .header-text p { font-size: 0.82rem; color: var(--accent-lime); font-weight: 500; }
+
   
+
   .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.04); }
+
   .card-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); margin-bottom: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+
   
+
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
+
   .field { display: flex; flex-direction: column; gap: 4px; }
+
   .field label { font-size: 0.82rem; font-weight: 600; color: #334155; }
+
   .field input, .field select, .field textarea { padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem; outline: none; }
+
   .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); }
+
   
+
   .bmi-box { background: #ecfdf5; border: 1px solid #a7f3d0; padding: 6px 10px; border-radius: 6px; text-align: center; }
+
   .bmi-val { font-size: 1.1rem; font-weight: bold; color: #047857; }
 
+
+
   .btn { background: var(--primary); color: white; border: none; padding: 9px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+
   .btn:hover { background: var(--primary-hover); }
+
   .btn-success { background: var(--success); }
+
   .btn-warning { background: var(--accent-gold); color: white; }
+
   .btn-secondary { background: #475569; }
 
+
+
   /* Excel Table Styling */
+
   .table-responsive { overflow-x: auto; max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; }
+
   table.excel-table { width: 100%; border-collapse: collapse; text-align: center; min-width: 1500px; font-size: 0.85rem; }
+
   table.excel-table th, table.excel-table td { border: 1px solid #cbd5e1; padding: 8px 6px; white-space: nowrap; }
+
   table.excel-table th { background-color: #b91c1c; color: white; font-weight: bold; position: sticky; top: 0; }
+
   table.excel-table tr:nth-child(even) { background-color: #f8fafc; }
+
   table.excel-table tr:hover { background-color: #f1f5f9; }
 
+
+
   /* Custom Daily Confirmation Table */
+
   table.confirmation-table { width: 100%; border-collapse: collapse; text-align: right; }
+
   table.confirmation-table th, table.confirmation-table td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; }
+
   table.confirmation-table th { background-color: #e0f2fe; color: #0369a1; font-weight: bold; }
 
+
+
   /* Modal Styles */
+
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); justify-content: center; align-items: center; padding: 15px; z-index: 1000; }
+
   .modal-content { background: white; padding: 22px; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
+
 </style>
+
 </head>
+
 <body>
 
+
+
 <div class="container">
+
   <!-- Header -->
+
   <header>
+
     <div class="brand-logo">
+
       <div class="logo-box">
+
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
+
       </div>
+
       <div class="header-text">
+
         <h1>د. بهاء شكري - نظام تقييم ما قبل العملية (Pre-Op Log)</h1>
+
         <p>التشخيص الإكلينيكي الكامل والشيت الطبي الجراحي</p>
+
       </div>
+
     </div>
+
   </header>
 
+
+
   <!-- Entry Form Card -->
+
   <div class="card">
+
     <div class="card-title">📝 نموذج إدخال حالة جديدة ما قبل العملية (Pre-Op)</div>
+
     
+
     <div class="grid">
+
       <div class="field">
+
         <label>Date (تاريخ العملية)</label>
+
         <input type="date" id="opDate">
+
       </div>
+
       <div class="field">
+
         <label>Governorate (المحافظة)</label>
+
         <input type="text" id="governorate" placeholder="القاهرة، الإسكندرية...">
+
       </div>
+
       <div class="field">
+
         <label>Hospital (المستشفى)</label>
+
         <input type="text" id="hospital" placeholder="Teba...">
+
       </div>
+
       <div class="field">
+
         <label>Name (اسم الحالة)</label>
+
         <input type="text" id="patientName" placeholder="انتصار عصام...">
+
       </div>
+
       <div class="field">
+
         <label>Age (السن)</label>
+
         <input type="number" id="patientAge" placeholder="33">
+
       </div>
+
       <div class="field">
+
         <label>Wt (الوزن - كجم)</label>
+
         <input type="number" id="weight" placeholder="112" oninput="calculateBMI()">
+
       </div>
+
       <div class="field">
+
         <label>Ht (الطول - سم)</label>
+
         <input type="number" id="height" placeholder="158" oninput="calculateBMI()">
+
       </div>
+
       <div class="field">
+
         <label>BMI (مؤشر الكتلة)</label>
+
         <div class="bmi-box">
+
           <span class="bmi-val" id="bmiResult">0.0</span>
+
         </div>
+
       </div>
+
     </div>
 
+
+
     <div class="grid">
+
       <div class="field">
+
         <label>OSAS</label>
+
         <input type="text" id="osas" placeholder="X / Mild / Snoring...">
+
       </div>
+
       <div class="field">
+
         <label>GERD</label>
+
         <input type="text" id="gerd" placeholder="X / e H. M / ✔️...">
+
       </div>
+
       <div class="field">
+
         <label>M.H. (Medical History)</label>
+
         <input type="text" id="mh" placeholder="M. F / HPTNS...">
+
       </div>
+
       <div class="field">
+
         <label>Smoking</label>
+
         <input type="text" id="smoking" placeholder="X / Smoker hashish...">
+
       </div>
+
       <div class="field">
+
         <label>S.H. (Surgical History)</label>
+
         <input type="text" id="sh" placeholder="V. D, abortion...">
+
       </div>
+
     </div>
 
+
+
     <div class="grid">
+
       <div class="field">
+
         <label>Labs / Invest (التحاليل والفحوصات)</label>
+
         <input type="text" id="labs" placeholder="Hb 12.1 / creat 1.2...">
+
       </div>
+
       <div class="field">
+
         <label>Operation (العملية)</label>
+
         <input type="text" id="operation" placeholder="Sleeve / Bypass...">
+
       </div>
+
       <div class="field">
+
         <label>Pre Op prep (تجهيز العملية)</label>
+
         <input type="text" id="preOpPrep" placeholder="Shower / Shaving...">
+
       </div>
+
       <div class="field">
+
         <label>Intra operative (تفاصيل الجراحة)</label>
+
         <input type="text" id="intraOp" placeholder="ملاحظات الجراحة...">
+
       </div>
+
     </div>
+
+
 
     <button class="btn btn-success" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 0.95rem;" onclick="savePreOpRecord()">💾 حفظ بيانات الحالة وإدراجها بالشيت</button>
+
   </div>
+
+
 
   <!-- Excel-like Daily Table Section -->
+
   <div class="card">
+
     <div class="card-title">
+
       <span>📊 الشيت الطبي الكامل لحالات اليوم المحدد (Pre-Op Sheet)</span>
+
       <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;" onclick="fetchPreOpFromSupabase()">🔄 تحديث البيانات</button>
+
     </div>
+
+
 
     <div class="table-responsive">
+
       <table class="excel-table">
+
         <thead>
+
           <tr>
+
             <th>Date</th>
+
             <th>Governorate</th>
+
             <th>Hospital</th>
+
             <th>Name</th>
+
             <th>Age</th>
+
             <th>Wt</th>
+
             <th>Ht</th>
+
             <th>BMI</th>
+
             <th>OSAS</th>
+
             <th>GERD</th>
+
             <th>M.H.</th>
+
             <th>Smoking</th>
+
             <th>S.H.</th>
+
             <th>Labs</th>
+
             <th>Operation</th>
+
             <th>Pre Op prep</th>
+
             <th>Intra operative</th>
+
             <th>تعديل</th>
+
           </tr>
+
         </thead>
+
         <tbody id="dailyTableBody">
+
           <tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
+
         </tbody>
+
       </table>
+
     </div>
+
   </div>
+
+
 
   <!-- SECTION 1: Daily Operations Filter & Confirmation List -->
+
   <div class="card" style="background: #f0f9ff; border-color: #bae6fd;">
+
     <div class="card-title" style="color: #0369a1; border-color: #bae6fd;">
+
       <span>📅 الجزء الأول: تصفية وتأكيد يومية العمليات (تأكيد إجراء العملية ورابط كود الحسابات)</span>
+
     </div>
+
     
+
     <div class="grid">
+
       <div class="field">
+
         <label>تاريخ يومية العملية:</label>
+
         <input type="date" id="filterOpDate" onchange="filterDailyList()">
+
       </div>
+
       <div class="field">
+
         <label>اسم المستشفى (اختياري):</label>
+
         <input type="text" id="filterOpHospital" placeholder="ابحث باسم المستشفى..." onkeyup="filterDailyList()">
+
       </div>
+
     </div>
+
+
 
     <!-- Confirmation Table for Daily Operations -->
+
     <div style="margin-top: 10px; background: white; padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
+
       <h4 style="color: var(--primary); margin-bottom: 10px;">📋 أسماء حالات اليومية (تأكيد موقف العملية وتسجيل كود العملاء بعد العملية):</h4>
+
       <div class="table-responsive" style="border:none;">
+
         <table class="confirmation-table">
+
           <thead>
+
             <tr>
+
               <th>م</th>
+
               <th>اسم الحالة</th>
+
               <th>المستشفى</th>
+
               <th>نوع العملية</th>
+
               <th>تأكيد موقف العملية</th>
+
               <th>تاريخ العملية</th>
+
               <th>كود العملاء بعد العملية</th>
+
             </tr>
+
           </thead>
+
           <tbody id="confirmationTableBody">
+
             <tr><td colspan="7" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب حالات اليوم...</td></tr>
+
           </tbody>
+
         </table>
+
       </div>
+
     </div>
+
   </div>
+
+
 
   <!-- SECTION 2: Split Global Search & Archive Section -->
+
   <div class="card" style="background: #f8fafc; border: 2px dashed #cbd5e1;">
+
     <div class="card-title">🔍 الجزء الثاني: البحث الشامل بالأرشيف (محددات البحث المخصصة)</div>
+
     
+
     <div class="grid">
+
       <div class="field">
+
         <label>اسم الحالة (Patient Name):</label>
+
         <input type="text" id="searchName" placeholder="اكتب اسم الحالة..." onkeyup="executeGlobalSearch()">
+
       </div>
+
       <div class="field">
+
         <label>تاريخ العملية (Op Date):</label>
+
         <input type="date" id="searchOpDate" onchange="executeGlobalSearch()">
+
       </div>
+
       <div class="field">
+
         <label>كود العملاء بعد العملية (Customer Code):</label>
+
         <input type="text" id="searchCode" placeholder="اكتب الكود..." onkeyup="executeGlobalSearch()">
+
       </div>
+
     </div>
+
+
 
     <div style="display: flex; gap: 10px; margin-top: 10px;">
+
       <button class="btn btn-secondary" style="flex: 1;" onclick="executeGlobalSearch()">🔍 بحث في الأرشيف</button>
+
       <button class="btn" style="background: #64748b;" onclick="resetSearchInputs()">🔄 إعادة ضبط خانات البحث</button>
+
     </div>
+
+
 
     <div id="searchResultsBox" style="display: none; margin-top: 15px;">
+
       <h4 style="color: var(--primary); margin-bottom: 10px;">🔎 نتائج البحث في الشيت والأرشيف الطبي:</h4>
+
       <div class="table-responsive">
+
         <table class="excel-table">
+
           <thead>
+
             <tr>
+
               <th>Date</th>
+
               <th>Governorate</th>
+
               <th>Hospital</th>
+
               <th>Name</th>
+
               <th>Age</th>
+
               <th>Wt</th>
+
               <th>Ht</th>
+
               <th>BMI</th>
+
               <th>OSAS</th>
+
               <th>GERD</th>
+
               <th>M.H.</th>
+
               <th>Smoking</th>
+
               <th>S.H.</th>
+
               <th>Labs</th>
+
               <th>Operation</th>
+
               <th>Pre Op prep</th>
+
               <th>Intra operative</th>
+
               <th>تعديل</th>
+
             </tr>
+
           </thead>
+
           <tbody id="searchResultsTableBody">
+
             <!-- Results injected here -->
+
           </tbody>
+
         </table>
+
       </div>
+
     </div>
+
   </div>
+
 </div>
+
+
 
 <!-- Comprehensive Edit Modal -->
+
 <div id="editModal" class="modal">
+
   <div class="modal-content">
+
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+
       <h3 style="color: var(--primary);">✏️ تعديل بيانات الحالة في شيت Pre-Op</h3>
+
       <button onclick="closeModal()" style="background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+
     </div>
 
+
+
     <div class="grid">
+
       <div class="field"><label>Date (تاريخ العملية)</label><input type="date" id="mOpDate"></div>
+
       <div class="field"><label>Governorate</label><input type="text" id="mGovernorate"></div>
+
       <div class="field"><label>Hospital</label><input type="text" id="mHospital"></div>
+
       <div class="field"><label>Name</label><input type="text" id="mName"></div>
+
       <div class="field"><label>Age</label><input type="number" id="mAge"></div>
+
       <div class="field"><label>Wt</label><input type="number" id="mWt" oninput="calculateModalBMI()"></div>
+
       <div class="field"><label>Ht</label><input type="number" id="mHt" oninput="calculateModalBMI()"></div>
+
       <div class="field"><label>BMI</label><div class="bmi-box"><span class="bmi-val" id="mBmi">0.0</span></div></div>
+
     </div>
 
+
+
     <div class="grid">
+
       <div class="field"><label>OSAS</label><input type="text" id="mOsas"></div>
+
       <div class="field"><label>GERD</label><input type="text" id="mGerd"></div>
+
       <div class="field"><label>M.H.</label><input type="text" id="mMh"></div>
+
       <div class="field"><label>Smoking</label><input type="text" id="mSmoking"></div>
+
       <div class="field"><label>S.H.</label><input type="text" id="mSh"></div>
+
     </div>
 
+
+
     <div class="grid">
+
       <div class="field"><label>Labs</label><input type="text" id="mLabs"></div>
+
       <div class="field"><label>Operation</label><input type="text" id="mOperation"></div>
+
       <div class="field"><label>Pre Op prep</label><input type="text" id="mPrePrep"></div>
+
       <div class="field"><label>Intra operative</label><input type="text" id="mIntraOp"></div>
+
     </div>
+
+
 
     <button class="btn btn-success" style="width: 100%; margin-top: 14px;" onclick="saveModalChanges()">💾 حفظ التعديلات أونلاين</button>
+
   </div>
+
 </div>
 
+
+
 <script>
+
   const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
+
   const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
+
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+
+
   document.getElementById('opDate').valueAsDate = new Date();
+
   document.getElementById('filterOpDate').valueAsDate = new Date();
 
+
+
   let allPreOpRecords = [];
+
   let currentActiveDbId = null;
 
+
+
   window.onload = function() {
+
     fetchPreOpFromSupabase();
+
   };
 
+
+
   function calculateBMI() {
+
     let wt = parseFloat(document.getElementById('weight').value);
+
     let ht = parseFloat(document.getElementById('height').value);
+
     if (wt > 0 && ht > 0) {
+
       document.getElementById('bmiResult').innerText = (wt / ((ht / 100) * (ht / 100))).toFixed(1);
+
     } else {
+
       document.getElementById('bmiResult').innerText = "0.0";
+
     }
+
   }
+
+
 
   function calculateModalBMI() {
+
     let wt = parseFloat(document.getElementById('mWt').value);
+
     let ht = parseFloat(document.getElementById('mHt').value);
+
     if (wt > 0 && ht > 0) {
+
       document.getElementById('mBmi').innerText = (wt / ((ht / 100) * (ht / 100))).toFixed(1);
+
     } else {
+
       document.getElementById('mBmi').innerText = "0.0";
+
     }
+
   }
 
+
+
   async function fetchPreOpFromSupabase() {
+
     let tbody = document.getElementById('dailyTableBody');
+
     tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
+
+
 
     const { data, error } = await supabaseClient.from('preop_records').select('*').order('id', { ascending: false });
 
+
+
     if (error) {
+
       tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، يرجى التأكد من إضافة جدول preop_records في Supabase.</td></tr>';
+
     } else {
+
       allPreOpRecords = data.map(item => ({ dbId: item.id, ...item.data }));
+
       filterDailyList();
+
     }
+
   }
+
+
 
   function filterDailyList() {
+
     let selectedDate = document.getElementById('filterOpDate').value;
+
     let selectedHospital = document.getElementById('filterOpHospital').value.trim().toLowerCase();
 
+
+
     let filtered = allPreOpRecords.filter(item => {
+
       let matchesDate = !selectedDate || (item.opDate === selectedDate);
+
       let matchesHosp = !selectedHospital || (item.hospital && item.hospital.toLowerCase().includes(selectedHospital));
+
       return matchesDate && matchesHosp;
+
     });
+
+
 
     renderConfirmationRows(filtered);
+
     renderTableRows(filtered, 'dailyTableBody');
+
   }
+
+
 
   function renderConfirmationRows(list) {
+
     let tbody = document.getElementById('confirmationTableBody');
+
     tbody.innerHTML = '';
 
+
+
     if (!list || list.length === 0) {
+
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:15px;">لا توجد حالات مسجلة لهذا اليوم</td></tr>';
+
       return;
+
     }
 
+
+
     list.forEach((item, index) => {
+
       let status = item.opStatus || 'pending';
+
       let showCodeStyle = (status === 'completed') ? 'display:block;' : 'display:none;';
 
+
+
       tbody.innerHTML += `
+
         <tr>
+
           <td>${index + 1}</td>
+
           <td><b>${item.patientName}</b></td>
+
           <td>${item.hospital || '-'}</td>
+
           <td>${item.operation || '-'}</td>
+
           <td>
+
             <select id="statusSelect_${item.dbId}" onchange="autoSaveRowStatus(${item.dbId})" style="padding:6px; font-weight:bold;">
+
               <option value="pending" ${status === 'pending' ? 'selected' : ''}>⏳ قيد التجهيز</option>
+
               <option value="completed" ${status === 'completed' ? 'selected' : ''}>✅ تم تأكيد العملية</option>
+
               <option value="delayed" ${status === 'delayed' ? 'selected' : ''}>❌ تأجلت العملية</option>
+
             </select>
+
           </td>
+
           <td>
+
             <input type="date" id="rowOpDate_${item.dbId}" value="${item.opDate || ''}" onchange="autoSaveRowStatus(${item.dbId})" style="padding:6px; font-weight:bold;">
+
           </td>
+
           <td>
+
             <div id="codeContainer_${item.dbId}" style="${showCodeStyle}">
+
               <input type="text" id="rowCode_${item.dbId}" value="${item.patientCode || ''}" onchange="autoSaveRowStatus(${item.dbId})" placeholder="اكتب الكود..." style="padding:6px; font-weight:bold; color:var(--primary); width:100%;">
+
             </div>
+
           </td>
+
         </tr>
+
       `;
+
     });
+
   }
 
+
+
   async function autoSaveRowStatus(dbId) {
+
     let item = allPreOpRecords.find(a => a.dbId === dbId);
+
     if (item) {
+
       let updatedPayload = { ...item };
+
       delete updatedPayload.dbId;
 
+
+
       let statusSelect = document.getElementById(`statusSelect_${dbId}`).value;
+
       let opDateVal = document.getElementById(`rowOpDate_${dbId}`).value;
+
       let codeContainer = document.getElementById(`codeContainer_${dbId}`);
+
       
+
       codeContainer.style.display = (statusSelect === 'completed') ? 'block' : 'none';
+
+
 
       let codeVal = document.getElementById(`rowCode_${dbId}`).value.trim();
 
+
+
       updatedPayload.opStatus = statusSelect;
+
       updatedPayload.opDate = opDateVal;
+
       updatedPayload.patientCode = codeVal;
+
+
 
       const { error } = await supabaseClient.from('preop_records').update({ data: updatedPayload }).eq('id', dbId);
 
+
+
       if (!error) {
+
         fetchPreOpFromSupabase();
+
       }
+
     }
+
   }
+
+
 
   function renderTableRows(list, targetTbodyId) {
+
     let tbody = document.getElementById(targetTbodyId);
+
     tbody.innerHTML = '';
 
+
+
     if (!list || list.length === 0) {
+
       tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات مطابقة</td></tr>';
+
       return;
+
     }
 
+
+
     list.forEach((item) => {
+
       tbody.innerHTML += `
+
         <tr>
+
           <td>${item.opDate || '-'}</td>
+
           <td>${item.governorate || '-'}</td>
+
           <td>${item.hospital || '-'}</td>
+
           <td><b>${item.patientName || '-'}</b></td>
+
           <td>${item.patientAge || '-'}</td>
+
           <td>${item.weight || '-'}</td>
+
           <td>${item.height || '-'}</td>
+
           <td><b style="color:#b45309;">${item.bmi || '0.0'}</b></td>
+
           <td>${item.osas || '-'}</td>
+
           <td>${item.gerd || '-'}</td>
+
           <td>${item.mh || '-'}</td>
+
           <td>${item.smoking || '-'}</td>
+
           <td>${item.sh || '-'}</td>
+
           <td>${item.labs || '-'}</td>
+
           <td>${item.operation || '-'}</td>
+
           <td>${item.preOpPrep || '-'}</td>
+
           <td>${item.intraOp || '-'}</td>
+
           <td>
+
             <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem;" onclick="openEditModal(${item.dbId})">✏️ تعديل</button>
+
           </td>
+
         </tr>
+
       `;
+
     });
+
   }
 
+
+
   function executeGlobalSearch() {
+
     let nameQ = document.getElementById('searchName').value.trim().toLowerCase();
+
     let opDateQ = document.getElementById('searchOpDate').value;
+
     let codeQ = document.getElementById('searchCode').value.trim().toLowerCase();
+
+
 
     let box = document.getElementById('searchResultsBox');
 
+
+
     if (!nameQ && !opDateQ && !codeQ) {
+
       box.style.display = 'none';
+
       return;
+
     }
 
+
+
     let results = allPreOpRecords.filter(item => {
+
       let nameMatch = !nameQ || (item.patientName && item.patientName.toLowerCase().includes(nameQ));
+
       let opDateMatch = !opDateQ || (item.opDate && item.opDate === opDateQ);
+
       let codeMatch = !codeQ || (item.patientCode && item.patientCode.toLowerCase().includes(codeQ));
 
+
+
       return nameMatch && opDateMatch && codeMatch;
+
     });
 
+
+
     renderTableRows(results, 'searchResultsTableBody');
+
     box.style.display = 'block';
+
   }
+
+
 
   function resetSearchInputs() {
+
     document.getElementById('searchName').value = '';
+
     document.getElementById('searchOpDate').value = '';
+
     document.getElementById('searchCode').value = '';
+
     document.getElementById('searchResultsBox').style.display = 'none';
+
   }
 
+
+
   async function savePreOpRecord() {
+
     let patientName = document.getElementById('patientName').value.trim();
+
     if(!patientName) return alert("يرجى كتابة اسم الحالة");
 
+
+
     let payload = {
+
       opDate: document.getElementById('opDate').value,
+
       governorate: document.getElementById('governorate').value,
+
       hospital: document.getElementById('hospital').value,
+
       patientName: patientName,
+
       patientAge: document.getElementById('patientAge').value,
+
       weight: document.getElementById('weight').value,
+
       height: document.getElementById('height').value,
+
       bmi: document.getElementById('bmiResult').innerText,
+
       osas: document.getElementById('osas').value,
+
       gerd: document.getElementById('gerd').value,
+
       mh: document.getElementById('mh').value,
+
       smoking: document.getElementById('smoking').value,
+
       sh: document.getElementById('sh').value,
+
       labs: document.getElementById('labs').value,
+
       operation: document.getElementById('operation').value,
+
       preOpPrep: document.getElementById('preOpPrep').value,
+
       intraOp: document.getElementById('intraOp').value,
+
       opStatus: 'pending',
+
       patientCode: '',
+
       notes: ''
+
     };
+
+
 
     const { error } = await supabaseClient.from('preop_records').insert([{ data: payload }]);
 
+
+
     if (!error) {
+
       alert("✅ تم إدراج الحالة في شيت Pre-Op أونلاين بنجاح!");
+
       clearForm();
+
       fetchPreOpFromSupabase();
+
     }
+
   }
+
+
 
   function clearForm() {
+
     document.getElementById('governorate').value = '';
+
     document.getElementById('hospital').value = '';
+
     document.getElementById('patientName').value = '';
+
     document.getElementById('patientAge').value = '';
+
     document.getElementById('weight').value = '';
+
     document.getElementById('height').value = '';
+
     document.getElementById('bmiResult').innerText = '0.0';
+
     document.getElementById('osas').value = '';
+
     document.getElementById('gerd').value = '';
+
     document.getElementById('mh').value = '';
+
     document.getElementById('smoking').value = '';
+
     document.getElementById('sh').value = '';
+
     document.getElementById('labs').value = '';
+
     document.getElementById('operation').value = '';
+
     document.getElementById('preOpPrep').value = '';
+
     document.getElementById('intraOp').value = '';
+
   }
+
+
 
   function openEditModal(dbId) {
+
     currentActiveDbId = dbId;
+
     let item = allPreOpRecords.find(a => a.dbId === dbId);
+
     if(!item) return;
 
+
+
     document.getElementById('mOpDate').value = item.opDate || '';
+
     document.getElementById('mGovernorate').value = item.governorate || '';
+
     document.getElementById('mHospital').value = item.hospital || '';
+
     document.getElementById('mName').value = item.patientName || '';
+
     document.getElementById('mAge').value = item.patientAge || '';
+
     document.getElementById('mWt').value = item.weight || '';
+
     document.getElementById('mHt').value = item.height || '';
+
     document.getElementById('mBmi').innerText = item.bmi || '0.0';
+
     document.getElementById('mOsas').value = item.osas || '';
+
     document.getElementById('mGerd').value = item.gerd || '';
+
     document.getElementById('mMh').value = item.mh || '';
+
     document.getElementById('mSmoking').value = item.smoking || '';
+
     document.getElementById('mSh').value = item.sh || '';
+
     document.getElementById('mLabs').value = item.labs || '';
+
     document.getElementById('mOperation').value = item.operation || '';
+
     document.getElementById('mPrePrep').value = item.preOpPrep || '';
+
     document.getElementById('mIntraOp').value = item.intraOp || '';
 
+
+
     document.getElementById('editModal').style.display = 'flex';
+
   }
+
+
 
   function closeModal() {
+
     document.getElementById('editModal').style.display = 'none';
+
   }
 
+
+
   async function saveModalChanges() {
+
     let item = allPreOpRecords.find(a => a.dbId === currentActiveDbId);
+
     if (item) {
+
       let updatedPayload = {
+
         ...item,
+
         opDate: document.getElementById('mOpDate').value,
+
         governorate: document.getElementById('mGovernorate').value,
+
         hospital: document.getElementById('mHospital').value,
+
         patientName: document.getElementById('mName').value.trim(),
+
         patientAge: document.getElementById('mAge').value,
+
         weight: document.getElementById('mWt').value,
+
         height: document.getElementById('mHt').value,
+
         bmi: document.getElementById('bmiResult').innerText,
+
         osas: document.getElementById('mOsas').value,
+
         gerd: document.getElementById('mGerd').value,
+
         mh: document.getElementById('mMh').value,
+
         smoking: document.getElementById('mSmoking').value,
+
         sh: document.getElementById('mSh').value,
+
         labs: document.getElementById('mLabs').value,
+
         operation: document.getElementById('mOperation').value,
+
         preOpPrep: document.getElementById('mPrePrep').value,
+
         intraOp: document.getElementById('mIntraOp').value
+
       };
+
       delete updatedPayload.dbId;
+
+
 
       const { error } = await supabaseClient.from('preop_records').update({ data: updatedPayload }).eq('id', currentActiveDbId);
 
+
+
       if (!error) {
+
         alert("✅ تم تحديث بيانات الحالة بالشيت أونلاين بنجاح!");
+
         closeModal();
+
         fetchPreOpFromSupabase();
+
       }
+
     }
+
   }
+
 </script>
+
 </body>
+
 </html>
+
