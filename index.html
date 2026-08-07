@@ -89,7 +89,7 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field label { font-size: 0.9rem; font-weight: 600; color: #475569; }
-  .field input, .field select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
+  .field input, .field select, .field textarea { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
 
   .guarantor-section, .company-section { background-color: #f0fdf4; border: 1px dashed #86efac; padding: 16px; border-radius: 8px; margin-top: 12px; display: none; }
   .company-section { background-color: #fef3c7; border-color: #fcd34d; }
@@ -101,6 +101,8 @@
   .btn-edit:hover { background: #b45309; }
   .btn-invoice { background: #16a34a; }
   .btn-invoice:hover { background: #15803d; }
+  .btn-report { background: #0284c7; }
+  .btn-report:hover { background: #0369a1; }
   .btn-sort { background: #0284c7; }
   .btn-sort:hover { background: #0369a1; }
   
@@ -157,7 +159,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة وتخزين بيانات العملاء</p>
+        <p>نظام إدارة وتخزين بيانات العملاء \</p>
       </div>
     </div>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -466,6 +468,39 @@
   </div>
 </div>
 
+<!-- Modal Case Report Generator (📄 تقرير الحالة الشامل) -->
+<div id="reportModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 id="repModalTitle" style="color: var(--primary);">📄 إعداد تقرير وتوصيات المريض</h3>
+      <button onclick="closeReportModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+
+    <div style="background: #e0f2fe; border: 1px solid #7dd3fc; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+      <div class="grid" style="margin-bottom: 0;">
+        <div class="field">
+          <label style="font-weight: bold; color: #0369a1;">نوع التقرير المراد إصداره:</label>
+          <select id="repTypeSelect" onchange="handleReportTypeChange()" style="font-weight: bold; padding: 8px;">
+            <option value="medical_only" selected>📋 تقرير طبي وإكلينيكي مفصل فقط</option>
+            <option value="full_summary">📊 تقرير حالة شامل (طبي + إداري ومالي)</option>
+          </select>
+        </div>
+        <div class="field" id="repFinancialToggleBox" style="display: flex; flex-direction: row; align-items: center; gap: 8px; margin-top: 20px;">
+          <input type="checkbox" id="repShowFinancials" checked style="width: 18px; height: 18px; cursor: pointer;">
+          <label for="repShowFinancials" style="cursor: pointer; font-weight: bold; color: #0369a1;">إظهار الموقف المالي والأرقام بالتقرير</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom: 16px;">
+      <label style="font-weight: bold; color: var(--primary);">✍️ التقرير الطبي المفصل والتوصيات والإرشادات للحالة:</label>
+      <textarea id="repMedicalText" rows="6" placeholder="اكتب هنا التقرير الطبي المفصل، ملاحظات ما بعد العملية، إرشادات التغذية والمتابعة..." style="font-size: 0.95rem; line-height: 1.5;"></textarea>
+    </div>
+
+    <button class="btn btn-report" onclick="printPatientCaseReport()">🖨️ معاينة وتوليد التقرير للطباعة</button>
+  </div>
+</div>
+
 <!-- Modal Audit Logs -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
@@ -549,7 +584,6 @@
     let codeInput = document.getElementById('custCode').value.trim();
     if (!codeInput) return;
 
-    // البحث في جدول preop_records عن الحالة المتوافقة مع الكود
     const { data, error } = await supabaseClient.from('preop_records').select('*');
 
     if (!error && data) {
@@ -872,6 +906,7 @@
         <td>
           <button class="btn" style="padding: 4px 8px; font-size: 0.78rem;" onclick="openCustomerModalByDbId(${c.dbId})">📂 الحساب</button>
           <button class="btn btn-invoice" style="padding: 4px 8px; font-size: 0.78rem; margin-top: 3px;" onclick="openInvoiceModalByDbId(${c.dbId})">🧾 الفاتورة</button>
+          <button class="btn btn-report" style="padding: 4px 8px; font-size: 0.78rem; margin-top: 3px;" onclick="openReportModalByDbId(${c.dbId})">📄 التقرير</button>
           <button class="btn btn-edit" style="padding: 4px 8px; font-size: 0.78rem; margin-top: 3px;" onclick="editCustomerByDbId(${c.dbId})">✏️ تعديل</button>
         </td>
       </tr>`;
@@ -1059,6 +1094,132 @@
     logActivity('طباعة فاتورة', `تم اصدار فاتورة للعميل: ${c.name} (${c.code}) بقيمة إجمالية: ${grandTotal.toLocaleString()} ج.م (نسبة الضريبة: ${taxRate}%)`);
 
     closeInvoiceModal();
+    document.getElementById('printReceiptArea').style.display = 'block';
+    window.print();
+    document.getElementById('printReceiptArea').style.display = 'none';
+  }
+
+  /* Report System Functionalities (تقرير الحالة والماليات) */
+  function openReportModalByDbId(dbId) {
+    currentActiveDbId = dbId;
+    let c = customersList.find(item => item.dbId === dbId);
+    if(!c) return;
+
+    document.getElementById('repModalTitle').innerText = `📄 إعداد تقرير حالة المريض: ${c.name} (${c.code})`;
+    document.getElementById('repMedicalText').value = `الحالة خضعت لجراحة (${c.type}) بتاريخ ${c.opDate || 'المحدد'}. الحالة المستقرة وتوصى بالمتابعة الدورية، الالتزام بالتعليمات الغذائية، وإجراء الفحوصات الدورية المخصصة.`;
+
+    handleReportTypeChange();
+    document.getElementById('reportModal').style.display = 'flex';
+  }
+
+  function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+  }
+
+  function handleReportTypeChange() {
+    let repType = document.getElementById('repTypeSelect').value;
+    let toggleBox = document.getElementById('repFinancialToggleBox');
+    
+    if (repType === 'medical_only') {
+      toggleBox.style.display = 'none';
+    } else {
+      toggleBox.style.display = 'flex';
+    }
+  }
+
+  async function printPatientCaseReport() {
+    let c = customersList.find(item => item.dbId === currentActiveDbId);
+    if(!c) return;
+
+    let repType = document.getElementById('repTypeSelect').value;
+    let showFinancials = document.getElementById('repShowFinancials').checked && (repType === 'full_summary');
+    let medicalNotes = document.getElementById('repMedicalText').value.trim();
+
+    // جلب بيانات الإمكانيات والقياسات من Pre-Op إذا وجدت
+    let preOpInfo = { age: '-', weight: '-', height: '-', bmi: '-', mh: '-', labs: '-' };
+    const { data } = await supabaseClient.from('preop_records').select('*');
+    if (data) {
+      let matched = data.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === c.code.toLowerCase());
+      if (matched && matched.data) {
+        preOpInfo = matched.data;
+      }
+    }
+
+    let totalPaid = c.history ? c.history.reduce((sum, item) => sum + item.amount, 0) : c.initialPaid;
+    let remaining = c.total - totalPaid;
+    let payText = c.payType === 'cash' ? 'كاش بالكامل' : (c.payType === 'company' ? `قسط شركة (${c.company})` : 'قسط مباشر معنا');
+
+    let reportTitle = (repType === 'medical_only') ? 'تقرير طبي وإكلينيكي مفصل' : 'تقرير تقييم حالة شامل (طبي وإداري)';
+
+    let printHTML = `
+      <div style="font-size:1rem; line-height:1.7; color:#000;">
+        <div style="text-align:center; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:8px;">
+          <h3 style="margin:0; font-size:1.35rem; color:#0f4c5c;">${reportTitle}</h3>
+          <p style="margin:2px 0; font-size:0.88rem;">كود المريض: <b>${c.code}</b> | تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}</p>
+        </div>
+
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">👤 أولاً: البيانات الشخصية والإكلينيكية للمريض:</h4>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.92rem;">
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>اسم المريض:</b> ${c.name}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الرقم القومي:</b> ${c.nationalId || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>رقم الهاتف:</b> ${c.phone}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>العنوان والمحافظة:</b> ${c.gov || c.address || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الإجراء الجراحي:</b> ${c.type}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>تاريخ الجراحة:</b> ${c.opDate || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>المستشفى:</b> ${c.hospital || '-'}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>كارت إيليت:</b> ${c.elite || 'بدون كارت'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الوزن / الطول / BMI:</b> ${preOpInfo.weight || '-'} كجم / ${preOpInfo.height || '-'} سم / (<b>${preOpInfo.bmi || '-'}</b>)</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>التاريخ الطبي (M.H):</b> ${preOpInfo.mh || '-'}</td>
+          </tr>
+        </table>
+    `;
+
+    if (medicalNotes) {
+      printHTML += `
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">🩺 ثانياً: التقرير الطبي المفصل والتوصيات العلاجية:</h4>
+        <div style="border:1px solid #cbd5e1; padding:12px; border-radius:6px; margin-bottom:15px; background:#fafafa; white-space: pre-wrap; font-size:0.95rem; line-height:1.8;">${medicalNotes}</div>
+      `;
+    }
+
+    if (showFinancials) {
+      printHTML += `
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">💰 ثالثاً: الملخص الإداري والمالي للحالة:</h4>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.92rem;">
+          <tr>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><b>نظام الدفع:</b> ${payText}</td>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><b>إجمالي تكلفة العملية:</b> ${c.total.toLocaleString()} ج.م</td>
+          </tr>
+          <tr>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><b>إجمالي المسدد حتى الآن:</b> <span style="color:green;">${totalPaid.toLocaleString()} ج.م</span></td>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><b>المتبقي للتحصيل:</b> <span style="color:red;">${remaining.toLocaleString()} ج.م</span></td>
+          </tr>
+        </table>
+      `;
+    }
+
+    printHTML += `
+        <div style="margin-top:35px; display:flex; justify-content:space-between; padding-top:15px; border-top:1px dashed #000; font-size:0.9rem;">
+          <div><b>توقيع الطبيب المعالج / الجراح:</b> ..........................</div>
+          <div><b>توقيع وإقرار المريض:</b> ..........................</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
+    document.getElementById('pContent').innerHTML = printHTML;
+
+    logActivity('طباعة تقرير حالة', `تم اصدار تقرير حالة للمريض: ${c.name} (${c.code}) - نوع التقرير: ${reportTitle}`);
+
+    closeReportModal();
     document.getElementById('printReceiptArea').style.display = 'block';
     window.print();
     document.getElementById('printReceiptArea').style.display = 'none';
