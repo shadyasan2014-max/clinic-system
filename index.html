@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام إدارة العملاء  - د. بهاء شكري</title>
+<title>نظام إدارة العملاء والحسابات - د. بهاء شكري</title>
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -157,7 +157,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة وتخزين بيانات العملاء </p>
+        <p>نظام إدارة وتخزين بيانات العملاء والحسابات</p>
       </div>
     </div>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -214,12 +214,12 @@
 
       <div class="grid">
         <div class="field">
-          <label>كود العميل</label>
-          <input type="text" id="custCode" placeholder="مثال: C-101 أو 101" required>
+          <label>كود العميل (اكتب الكود لجلب الاسم أوتوماتيكياً)</label>
+          <input type="text" id="custCode" placeholder="مثال: C-101" onchange="fetchPatientNameFromPreOp()" required>
         </div>
         <div class="field">
           <label>اسم العميل بالكامل</label>
-          <input type="text" id="custName" placeholder="أحمد محمد علي" required>
+          <input type="text" id="custName" placeholder="سيتم جلب الاسم تلقائياً..." required>
         </div>
         <div class="field">
           <label>الرقم القومي (14 رقم)</label>
@@ -515,8 +515,8 @@
       <img src="Logo.png" alt="Logo" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.png'; this.onerror=null;">
     </div>
     <div>
-      <h2 style="margin:0;"> د. بهاء شكري - Dr. Bahaa Shoukry</h2>
-      <p style="margin:2px 0;">استشاري جراحات العامة و السمنة والمناظير المتقدمة</p>
+      <h2 style="margin:0;">🩺 د. بهاء شكري - Dr. Bahaa Shoukry</h2>
+      <p style="margin:2px 0;">استشاري جراحات السمنة والمناظير</p>
       <p id="pDate" style="margin-top: 5px; font-size: 0.9rem;"></p>
     </div>
   </div>
@@ -543,6 +543,28 @@
       initUserSession();
     }
   };
+
+  // 🔄 دالة البحث والسحب المباشر لبيانات المريض من شيت الـ Pre-Op بمجرد كتابة الكود
+  async function fetchPatientNameFromPreOp() {
+    let codeInput = document.getElementById('custCode').value.trim();
+    if (!codeInput) return;
+
+    // البحث في جدول preop_records عن الحالة المتوافقة مع الكود
+    const { data, error } = await supabaseClient.from('preop_records').select('*');
+
+    if (!error && data) {
+      let matchedRecord = data.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === codeInput.toLowerCase());
+      
+      if (matchedRecord) {
+        let p = matchedRecord.data;
+        document.getElementById('custName').value = p.patientName || '';
+        document.getElementById('operationType').value = p.operation || '';
+        document.getElementById('hospital').value = p.hospital || '';
+        document.getElementById('governorate').value = p.governorate || '';
+        if(p.opDate) document.getElementById('opDate').value = p.opDate;
+      }
+    }
+  }
 
   async function loginUser() {
     let u = document.getElementById('userInput').value.trim();
@@ -904,7 +926,6 @@
 
     document.getElementById('invModalTitle').innerText = `🧾 إعداد فاتورة رسمية للعميل: ${c.name} (${c.code})`;
     
-    // التوزيع المبدئي المباشر القابل للتعديل
     let total = c.total || 0;
     document.getElementById('invSurgeonFee').value = Math.round(total * 0.50);
     document.getElementById('invAnesthesiaFee').value = Math.round(total * 0.15);
