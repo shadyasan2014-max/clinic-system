@@ -69,6 +69,7 @@
   .btn:hover { background: var(--primary-hover); }
   .btn-success { background: var(--success); }
   .btn-warning { background: var(--accent-gold); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
   .btn-secondary { background: #475569; }
 
   /* Excel Table Styling */
@@ -235,7 +236,7 @@
             <th>Operation</th>
             <th>Pre Op prep</th>
             <th>Intra operative</th>
-            <th>تعديل</th>
+            <th>الإجراءات</th>
           </tr>
         </thead>
         <tbody id="dailyTableBody">
@@ -276,10 +277,11 @@
               <th>تأكيد موقف العملية</th>
               <th>تاريخ العملية</th>
               <th>كود العملاء بعد العملية</th>
+              <th>الإجراءات</th>
             </tr>
           </thead>
           <tbody id="confirmationTableBody">
-            <tr><td colspan="7" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب حالات اليوم...</td></tr>
+            <tr><td colspan="8" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب حالات اليوم...</td></tr>
           </tbody>
         </table>
       </div>
@@ -333,7 +335,7 @@
               <th>Operation</th>
               <th>Pre Op prep</th>
               <th>Intra operative</th>
-              <th>تعديل</th>
+              <th>الإجراءات</th>
             </tr>
           </thead>
           <tbody id="searchResultsTableBody">
@@ -379,7 +381,10 @@
       <div class="field"><label>Intra operative</label><input type="text" id="mIntraOp"></div>
     </div>
 
-    <button class="btn btn-success" style="width: 100%; margin-top: 14px;" onclick="saveModalChanges()">💾 حفظ التعديلات أونلاين</button>
+    <div style="display: flex; gap: 10px; margin-top: 14px;">
+      <button class="btn btn-success" style="flex: 1;" onclick="saveModalChanges()">💾 حفظ التعديلات أونلاين</button>
+      <button class="btn btn-danger" style="width: auto;" onclick="deletePreOpRecordFromModal()">🗑️ حذف الحالة</button>
+    </div>
   </div>
 </div>
 
@@ -468,7 +473,7 @@
     tbody.innerHTML = '';
 
     if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:15px;">لا توجد حالات مسجلة لهذا اليوم</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:15px;">لا توجد حالات مسجلة لهذا اليوم</td></tr>';
       return;
     }
 
@@ -496,6 +501,9 @@
             <div id="codeContainer_${item.dbId}" style="${showCodeStyle}">
               <input type="text" id="rowCode_${item.dbId}" value="${item.patientCode || ''}" onchange="autoSaveRowStatus(${item.dbId})" placeholder="اكتب الكود..." style="padding:6px; font-weight:bold; color:var(--primary); width:100%;">
             </div>
+          </td>
+          <td>
+            <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem;" onclick="deletePreOpRecord(${item.dbId})">🗑️ حذف</button>
           </td>
         </tr>
       `;
@@ -559,6 +567,7 @@
           <td>${item.intraOp || '-'}</td>
           <td>
             <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem;" onclick="openEditModal(${item.dbId})">✏️ تعديل</button>
+            <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="deletePreOpRecord(${item.dbId})">🗑️ حذف</button>
           </td>
         </tr>
       `;
@@ -629,6 +638,32 @@
       alert("✅ تم إدراج الحالة في شيت Pre-Op أونلاين بنجاح!");
       clearForm();
       fetchPreOpFromSupabase();
+    }
+  }
+
+  // 🗑️ دالة حذف الحالة من شيت الـ Pre-Op
+  async function deletePreOpRecord(dbId) {
+    let item = allPreOpRecords.find(a => a.dbId === dbId);
+    if (!item) return;
+
+    let confirmDelete = confirm(`⚠️ هل أنت تأكد تماماً من حذف حالة المريض: "${item.patientName}" من شيت Pre-Op؟\nلا يمكن التراجع عن هذه الخطوة!`);
+
+    if (confirmDelete) {
+      const { error } = await supabaseClient.from('preop_records').delete().eq('id', dbId);
+
+      if (!error) {
+        alert(`✅ تم حذف حالة المريض (${item.patientName}) بنجاح.`);
+        fetchPreOpFromSupabase();
+      } else {
+        alert("⚠️ تعذر الحذف، يرجى مراجعة الاتصال بالإنترنت.");
+      }
+    }
+  }
+
+  function deletePreOpRecordFromModal() {
+    if (currentActiveDbId) {
+      closeModal();
+      deletePreOpRecord(currentActiveDbId);
     }
   }
 
