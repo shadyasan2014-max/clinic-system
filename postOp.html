@@ -47,7 +47,7 @@
   }
   .auth-box h2 { color: #0f4c5c; margin-bottom: 10px; font-size: 1.3rem; }
   .auth-box p { font-size: 0.88rem; color: #64748b; margin-bottom: 20px; }
-  .auth-box input {
+  .auth-box input, .auth-box select {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border);
@@ -433,6 +433,14 @@
         <div class="field"><label>اسم المستخدم (اليوزر)</label><input type="text" id="newUsername" placeholder="مثال: dr_ahmed"></div>
         <div class="field"><label>كلمة السر</label><input type="text" id="newPassword" placeholder="مثال: 123456"></div>
         <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: د. أحمد تغذية"></div>
+        <div class="field">
+          <label>نوع وصلاحية الحساب:</label>
+          <select id="newUserRole">
+            <option value="doctor" selected>🩺 دكتور متابعة وتغذية (بدون حسابات)</option>
+            <option value="accountant">💼 موظف حسابات وماليات فقط</option>
+            <option value="admin">⭐ مدير نظام كامل (كل الصلاحيات)</option>
+          </select>
+        </div>
       </div>
       <button class="btn btn-success" onclick="addNewUser()">إضافة الطبيب / المستخدم أونلاين</button>
     </div>
@@ -467,7 +475,12 @@
     let savedUser = localStorage.getItem('activeSystemUser');
     if (savedUser) {
       currentUser = JSON.parse(savedUser);
-      initUserSession();
+      // 🔒 فحص الصلاحية للحساب المسجل مسبقاً
+      if (currentUser.role === 'admin' || currentUser.role === 'doctor') {
+        initUserSession();
+      } else {
+        logoutUser();
+      }
     }
   };
 
@@ -481,7 +494,15 @@
     const { data, error } = await supabaseClient.from('system_users').select('*').eq('username', u).eq('password', p);
 
     if (data && data.length > 0) {
-      currentUser = data[0];
+      let user = data[0];
+
+      // 🔒 فحص الصلاحية: الدخول للمتابعات الطبية مسموح فقط للآدمن والأطباء
+      if (user.role === 'accountant') {
+        alert('⛔ عذراً: حسابات موظفي الحسابات غير مصرح لها بالدخول إلى الشيتات والمتابعات الطبية.');
+        return;
+      }
+
+      currentUser = user;
       localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
       err.style.display = 'none';
       initUserSession();
@@ -527,7 +548,6 @@
   }
 
   async function openLogsModal() {
-    // 🔒 حماية إضافية تمنع الفتح لغير الآدمن
     if (!currentUser || currentUser.role !== 'admin') {
       return alert('⚠️ غير مسموح: سجل الحركة متاح فقط للمشرف (Admin).');
     }
@@ -565,21 +585,21 @@
     let username = document.getElementById('newUsername').value.trim();
     let password = document.getElementById('newPassword').value.trim();
     let full_name = document.getElementById('newFullName').value.trim();
+    let role = document.getElementById('newUserRole').value;
 
     if(!username || !password || !full_name) return alert('برجاء كتابة كل البيانات المطلوبة');
 
-    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: 'user' }]);
+    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: role }]);
 
     if(!error) {
       alert('✅ تم إضافة الطبيب / المستخدم بنجاح!');
-      logActivity('إضافة مستخدم', `تم إنشاء يوزر جديد: ${full_name} (${username})`);
+      logActivity('إضافة مستخدم', `تم إنشاء يوزر جديد: ${full_name} (${username}) بصلاحية: ${role}`);
       closeUsersModal();
     } else {
       alert('⚠️ تعذر الإضافة، قد يكون اسم المستخدم مكرراً.');
     }
   }
 
-  // 🔄 سحب بيانات الحالة تلقائياً من Pre-Op بمجرد كتابة الكود
   async function fetchPatientDetailsByCode() {
     let code = document.getElementById('pCode').value.trim();
     if (!code) return;
