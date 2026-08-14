@@ -107,6 +107,7 @@
   .btn-danger { background: var(--danger); color: white; }
   .btn-secondary { background: #475569; }
   .btn-info { background: #0284c7; color: white; }
+  .btn-purple { background: #7c3aed; color: white; }
   .btn-report { background: #0284c7; color: white; }
   .btn-report:hover { background: #0369a1; }
 
@@ -303,13 +304,21 @@
       <textarea id="doctorNotes" rows="3" placeholder="اكتب هنا التوصيات الطبية والغذائية وتاريخ المتابعة القادمة..."></textarea>
     </div>
 
-    <!-- Upload Scans & Labs -->
-    <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-      <div class="field">
-        <label style="font-weight: bold; color: #166534;">📷 رفع صور التحاليل والأشعة الجديدة الخاصة بالمتابعة:</label>
-        <input type="file" id="postLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'formPostLabPreview')" style="background: white;">
+    <!-- Upload Section: Images + Operation Video -->
+    <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
+      <div class="grid" style="margin-bottom: 0;">
+        <div class="field">
+          <label style="font-weight: bold; color: #166534;">📷 رفع صور المتابعة والفحوصات (أكثر من صورة):</label>
+          <input type="file" id="postLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'formPostLabPreview')" style="background: white;">
+          <div id="formPostLabPreview" class="gallery-preview"></div>
+        </div>
+        <div class="field">
+          <label style="font-weight: bold; color: #7c3aed;">🎥 رفع فيديو العملية الجراحية (أو مقطع فيديو):</label>
+          <input type="file" id="opVideoFile" accept="video/*" onchange="handleOpVideo(this, 'formVideoPreview')" style="background: white;">
+          <input type="text" id="opVideoUrl" placeholder="أو الصق رابط فيديو العملية (Drive / Youtube)..." style="margin-top: 6px; background: white; font-size: 0.85rem;">
+          <div id="formVideoPreview" style="margin-top: 6px; font-size: 0.8rem; color: #7c3aed; font-weight: bold;"></div>
+        </div>
       </div>
-      <div id="formPostLabPreview" class="gallery-preview"></div>
     </div>
 
     <button class="btn btn-success" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="savePostOpRecord()">💾 حفظ سجل المتابعة في شيت Post Operative</button>
@@ -354,7 +363,7 @@
             <th>BMI</th>
             <th>الوزن المفقود</th>
             <th>نظام التغذية</th>
-            <th>الفحوصات والأشعة</th>
+            <th>المرفقات (صور وفيديو)</th>
             <th>المسؤول عن التسجيل</th>
             <th>الملاحظات</th>
             <th>الإجراءات</th>
@@ -400,11 +409,21 @@
       <textarea id="mNotes" rows="3"></textarea>
     </div>
 
-    <!-- Modal Photos -->
+    <!-- Modal Uploads -->
     <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 10px; border-radius: 8px; margin-bottom: 12px;">
-      <label style="font-weight:bold; color:#166534;">📷 صور الأشعة والتحاليل للمتابعة:</label>
-      <input type="file" id="mPostLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'modalPostLabPreview')" style="background:white; margin-top:4px;">
-      <div id="modalPostLabPreview" class="gallery-preview"></div>
+      <div class="grid" style="margin-bottom: 0;">
+        <div class="field">
+          <label style="font-weight:bold; color:#166534;">📷 صور المتابعة:</label>
+          <input type="file" id="mPostLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'modalPostLabPreview')" style="background:white; margin-top:4px;">
+          <div id="modalPostLabPreview" class="gallery-preview"></div>
+        </div>
+        <div class="field">
+          <label style="font-weight:bold; color:#7c3aed;">🎥 فيديو العملية:</label>
+          <input type="file" id="mOpVideoFile" accept="video/*" onchange="handleOpVideo(this, 'modalVideoPreview')" style="background:white; margin-top:4px;">
+          <input type="text" id="mOpVideoUrl" placeholder="رابط فيديو العملية..." style="margin-top: 4px; background: white;">
+          <div id="modalVideoPreview" style="margin-top: 4px; font-size: 0.8rem; color: #7c3aed; font-weight: bold;"></div>
+        </div>
+      </div>
     </div>
 
     <div style="display: flex; gap: 10px;">
@@ -436,7 +455,7 @@
 <!-- Modal Audit Logs (سجل الحركة والتعديلات - للآدمن فقط) -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
       <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات متابعات Post-Op (خاص بالإدارة)</h3>
       <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
@@ -494,6 +513,17 @@
   </div>
 </div>
 
+<!-- Modal Video Viewer (مشغل فيديو العملية) -->
+<div id="videoViewerModal" class="modal">
+  <div class="modal-content" style="max-width: 750px; text-align: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+      <h3 id="videoViewerTitle" style="color: #7c3aed;">🎥 فيديو العملية الجراحية</h3>
+      <button onclick="closeVideoViewer()" style="background: var(--danger); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <div id="videoPlayerBox" style="padding: 10px;"></div>
+  </div>
+</div>
+
 <!-- Printable Section Template with Logo -->
 <div id="printReceiptArea" style="display: none;">
   <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 15px;">
@@ -519,6 +549,8 @@
   let currentActiveDbId = null;
   let currentFormImages = [];
   let currentModalImages = [];
+  let currentFormVideoBase64 = "";
+  let currentModalVideoBase64 = "";
 
   document.getElementById('followUpDate').valueAsDate = new Date();
 
@@ -697,6 +729,7 @@
     }
   }
 
+  // 📷 معالجة صور المتابعة
   function handlePostLabImages(input, previewContainerId) {
     let container = document.getElementById(previewContainerId);
     if (input.files) {
@@ -714,6 +747,24 @@
         };
         reader.readAsDataURL(file);
       });
+    }
+  }
+
+  // 🎥 معالجة ملف فيديو العملية
+  function handleOpVideo(input, previewTextId) {
+    let previewEl = document.getElementById(previewTextId);
+    if (input.files && input.files[0]) {
+      let file = input.files[0];
+      let isForm = (previewTextId === 'formVideoPreview');
+      previewEl.innerText = `⏳ جاري تحميل ومعالجة الفيديو: ${file.name}...`;
+
+      let reader = new FileReader();
+      reader.onload = function(e) {
+        if (isForm) currentFormVideoBase64 = e.target.result;
+        else currentModalVideoBase64 = e.target.result;
+        previewEl.innerText = `✅ تم تجهيز الفيديو: ${file.name} بنجاح`;
+      };
+      reader.readAsDataURL(file);
     }
   }
 
@@ -752,10 +803,15 @@
     }
 
     list.forEach(item => {
-      let imagesBtn = '';
+      let mediaBtns = [];
       if (item.images && item.images.length > 0) {
-        imagesBtn = `<br><button class="btn btn-info" style="padding:2px 6px; font-size:0.7rem; margin-top:3px;" onclick="viewPostOpImages(${item.dbId})">📂 الصور (${item.images.length})</button>`;
+        mediaBtns.push(`<button class="btn btn-info" style="padding:2px 6px; font-size:0.7rem; margin-top:2px;" onclick="viewPostOpImages(${item.dbId})">📂 الصور (${item.images.length})</button>`);
       }
+      if (item.videoData || item.videoUrl) {
+        mediaBtns.push(`<button class="btn btn-purple" style="padding:2px 6px; font-size:0.7rem; margin-top:2px;" onclick="viewOperationVideo(${item.dbId})">🎥 فيديو العملية</button>`);
+      }
+
+      let mediaHtml = mediaBtns.length > 0 ? mediaBtns.join('<br>') : '<span style="color:#94a3b8; font-size:0.75rem;">لا توجد مرفقات</span>';
 
       tbody.innerHTML += `
         <tr>
@@ -770,7 +826,7 @@
           <td><b style="color:#b45309;">${item.currentBmi || '-'}</b></td>
           <td><span style="color:green; font-weight:bold;">${item.weightLost || '0'} كجم</span></td>
           <td>${item.dietStage || '-'}</td>
-          <td>${item.followUpLabs || '-'}${imagesBtn}</td>
+          <td>${mediaHtml}</td>
           <td><span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${item.recordedBy || 'غير محدد'}</span></td>
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;" title="${item.doctorNotes || ''}">${item.doctorNotes || '-'}</td>
           <td>
@@ -829,13 +885,15 @@
       followUpLabs: document.getElementById('followUpLabs').value,
       doctorNotes: document.getElementById('doctorNotes').value,
       images: currentFormImages,
+      videoData: currentFormVideoBase64,
+      videoUrl: document.getElementById('opVideoUrl').value.trim(),
       recordedBy: currentUser ? currentUser.full_name : 'غير محدد'
     };
 
     const { error } = await supabaseClient.from('postop_records').insert([{ data: payload }]);
 
     if (!error) {
-      alert("✅ تم حفظ سجل المتابعة في Post Operative أونلاين بنجاح!");
+      alert("✅ تم حفظ سجل المتابعة والمرفقات أونلاين بنجاح!");
       logActivity('تسجيل متابعة', `تم تسجيل متابعة جديدة للمريض: ${name} (كود: ${code}) بواسطة: ${payload.recordedBy}`);
       clearPostForm();
       fetchPostOpFromSupabase();
@@ -860,8 +918,12 @@
     document.getElementById('followUpLabs').value = '';
     document.getElementById('doctorNotes').value = '';
     document.getElementById('postLabFiles').value = '';
+    document.getElementById('opVideoFile').value = '';
+    document.getElementById('opVideoUrl').value = '';
     document.getElementById('formPostLabPreview').innerHTML = '';
+    document.getElementById('formVideoPreview').innerText = '';
     currentFormImages = [];
+    currentFormVideoBase64 = "";
   }
 
   async function deletePostOpRecord(dbId) {
@@ -897,6 +959,10 @@
     currentModalImages = item.images || [];
     renderPreviewImages(currentModalImages, 'modalPostLabPreview');
 
+    currentModalVideoBase64 = item.videoData || "";
+    document.getElementById('mOpVideoUrl').value = item.videoUrl || '';
+    document.getElementById('modalVideoPreview').innerText = currentModalVideoBase64 ? "✅ يوجد ملف فيديو محفوظ مسبقاً" : "";
+
     document.getElementById('editPostModal').style.display = 'flex';
   }
 
@@ -930,6 +996,8 @@
         weightLost: weightLost,
         doctorNotes: document.getElementById('mNotes').value,
         images: currentModalImages,
+        videoData: currentModalVideoBase64,
+        videoUrl: document.getElementById('mOpVideoUrl').value.trim(),
         lastEditedBy: currentUser ? currentUser.full_name : 'غير محدد'
       };
       delete updatedPayload.dbId;
@@ -962,7 +1030,7 @@
     document.getElementById('reportModal').style.display = 'none';
   }
 
-  /* 🖨️ توليد وطباعة التقرير الشامل والمفصل المربوط بـ (Pre-Op + العيادات + Post-Op) */
+  /* 🖨️ توليد وطباعة التقرير الشامل والمفصل */
   async function printPostOpPatientReport() {
     let currentPost = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
     if (!currentPost) return;
@@ -1038,6 +1106,7 @@
     if (matchedPost.length > 0) {
       let postRows = '';
       matchedPost.forEach((p, i) => {
+        let hasVideoText = (p.videoData || p.videoUrl) ? '<span style="color:#7c3aed; font-weight:bold;">🎥 مرفق</span>' : '-';
         postRows += `
           <tr>
             <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${i+1}</td>
@@ -1046,6 +1115,7 @@
             <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${p.currentWeight || '-'} كجم (BMI: ${p.currentBmi || '-'})</td>
             <td style="border:1px solid #cbd5e1; padding:6px; text-align:center; color:green; font-weight:bold;">${p.weightLost || '0'} كجم</td>
             <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${p.dietStage || '-'}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${hasVideoText}</td>
             <td style="border:1px solid #cbd5e1; padding:6px; font-size:0.82rem;">${p.doctorNotes || '-'}</td>
           </tr>
         `;
@@ -1062,6 +1132,7 @@
               <th style="border:1px solid #cbd5e1; padding:6px;">الوزن و BMI</th>
               <th style="border:1px solid #cbd5e1; padding:6px;">الوزن المفقود</th>
               <th style="border:1px solid #cbd5e1; padding:6px;">النظام الغذائي</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">فيديو العملية</th>
               <th style="border:1px solid #cbd5e1; padding:6px;">توصيات وملاحظات المتابعة</th>
             </tr>
           </thead>
@@ -1149,6 +1220,44 @@
 
   function closeImageViewer() {
     document.getElementById('imageViewerModal').style.display = 'none';
+  }
+
+  /* 🎥 مشغل وعارض فيديو العملية */
+  function viewOperationVideo(dbId) {
+    let item = allPostOpRecords.find(a => a.dbId === dbId);
+    if (!item || (!item.videoData && !item.videoUrl)) return alert("لا يوجد فيديو مسجل لهذه العملية");
+
+    document.getElementById('videoViewerTitle').innerText = `🎥 فيديو العملية الجراحية: ${item.name} (${item.operation || ''})`;
+    let playerBox = document.getElementById('videoPlayerBox');
+    playerBox.innerHTML = '';
+
+    if (item.videoData) {
+      playerBox.innerHTML += `
+        <video controls autoplay style="width: 100%; max-height: 480px; border-radius: 8px; background: #000;">
+          <source src="${item.videoData}">
+          متصفحك لا يدعم تشغيل هذا الفيديو.
+        </video>
+        <br>
+        <a href="${item.videoData}" download="operation_video_${item.code}.mp4" class="btn btn-secondary" style="display:inline-block; margin-top:10px; text-decoration:none; padding:6px 14px; font-size:0.85rem;">⬇️ تحميل الفيديو</a>
+      `;
+    }
+
+    if (item.videoUrl) {
+      playerBox.innerHTML += `
+        <div style="margin-top: 10px; padding: 12px; background: #f1f5f9; border-radius: 8px;">
+          <p style="margin-bottom: 6px; font-weight: bold;">🔗 رابط فيديو العملية الخارجي:</p>
+          <a href="${item.videoUrl}" target="_blank" class="btn btn-purple" style="display:inline-block; text-decoration:none; padding:8px 16px;">🌐 فتح رابط الفيديو في نافذة جديدة</a>
+        </div>
+      `;
+    }
+
+    document.getElementById('videoViewerModal').style.display = 'flex';
+  }
+
+  function closeVideoViewer() {
+    let playerBox = document.getElementById('videoPlayerBox');
+    playerBox.innerHTML = ''; // إيقاف تشغيل الفيديو عند الإغلاق
+    document.getElementById('videoViewerModal').style.display = 'none';
   }
 </script>
 </body>
