@@ -152,8 +152,8 @@
     </div>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
-      <button onclick="openLogsModal()" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">📜 سجل الحركة</button>
-      <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display:none;">👤 المستخدمين</button>
+      <button onclick="openLogsModal()" id="auditLogsBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: none;">📜 سجل الحركة</button>
+      <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: none;">👤 المستخدمين</button>
       <button onclick="logoutUser()" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">🔒 خروج</button>
     </div>
   </header>
@@ -397,11 +397,11 @@
   </div>
 </div>
 
-<!-- Modal Audit Logs (سجل الحركة والتعديلات) -->
+<!-- Modal Audit Logs (سجل الحركة والتعديلات - للآدمن فقط) -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات متابعات Post-Op</h3>
+      <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات متابعات Post-Op (خاص بالإدارة)</h3>
       <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
     <table>
@@ -495,9 +495,16 @@
     document.getElementById('authOverlay').style.display = 'none';
     document.getElementById('mainContainer').style.display = 'block';
     document.getElementById('userBadge').innerText = `👤 المستخدم: ${currentUser.full_name}`;
+    
+    // 🔒 إظهار أزرار الإدارة وسجل الحركة للآدمن فقط
     if (currentUser.role === 'admin') {
       document.getElementById('manageUsersBtn').style.display = 'inline-block';
+      document.getElementById('auditLogsBtn').style.display = 'inline-block';
+    } else {
+      document.getElementById('manageUsersBtn').style.display = 'none';
+      document.getElementById('auditLogsBtn').style.display = 'none';
     }
+    
     fetchPostOpFromSupabase();
   }
 
@@ -520,6 +527,11 @@
   }
 
   async function openLogsModal() {
+    // 🔒 حماية إضافية تمنع الفتح لغير الآدمن
+    if (!currentUser || currentUser.role !== 'admin') {
+      return alert('⚠️ غير مسموح: سجل الحركة متاح فقط للمشرف (Admin).');
+    }
+
     let tbody = document.getElementById('logsTableBody');
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px;">⏳ جاري جلب سجل الحركة...</td></tr>';
     document.getElementById('logsModal').style.display = 'flex';
@@ -543,7 +555,10 @@
   }
 
   function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
-  function openUsersModal() { document.getElementById('usersModal').style.display = 'flex'; }
+  function openUsersModal() { 
+    if (!currentUser || currentUser.role !== 'admin') return alert('⚠️ خاص بالمشرف فقط');
+    document.getElementById('usersModal').style.display = 'flex'; 
+  }
   function closeUsersModal() { document.getElementById('usersModal').style.display = 'none'; }
 
   async function addNewUser() {
