@@ -23,8 +23,41 @@
   
   * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
   body { background-color: var(--bg); color: var(--text); padding: 15px; line-height: 1.4; }
-  .container { max-width: 100%; margin: 0 auto; }
+  .container { max-width: 100%; margin: 0 auto; display: none; }
   
+  /* Auth Screen Overlay */
+  #authOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #0f4c5c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .auth-box {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  }
+  .auth-box h2 { color: #0f4c5c; margin-bottom: 10px; font-size: 1.3rem; }
+  .auth-box p { font-size: 0.88rem; color: #64748b; margin-bottom: 20px; }
+  .auth-box input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .auth-box input:focus { border-color: var(--primary); }
+
   header { 
     background: var(--primary); 
     color: white; 
@@ -36,6 +69,8 @@
     justify-content: space-between;
     box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); 
     border-bottom: 3px solid var(--accent-lime);
+    flex-wrap: wrap;
+    gap: 12px;
   }
   .brand-logo { display: flex; align-items: center; gap: 14px; }
   .logo-box {
@@ -91,7 +126,19 @@
 </head>
 <body>
 
-<div class="container">
+<!-- Lock Screen for Authorization -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <h2>🔑 تسجيل الدخول لنظام Post-Op</h2>
+    <p>يرجى كتابة اسم المستخدم وكلمة السر المخصصة لك</p>
+    <input type="text" id="userInput" placeholder="اسم المستخدم (Username)...">
+    <input type="password" id="passInput" placeholder="كلمة السر (Password)..." onkeypress="if(event.key==='Enter') loginUser()">
+    <button class="btn" onclick="loginUser()">دخول النظام 🔓</button>
+    <div id="authError" style="color: var(--danger); font-size: 0.85rem; margin-top: 10px; display: none;">❌ بيانات الدخول غير صحيحة!</div>
+  </div>
+</div>
+
+<div class="container" id="mainContainer">
   <!-- Header -->
   <header>
     <div class="brand-logo">
@@ -102,6 +149,12 @@
         <h1>د. بهاء شكري - نظام متابعة ما بعد العملية (Post Operative)</h1>
         <p>سجل المتابعات الإكلينيكية، التغذية العلاجية، وحضور العيادة</p>
       </div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
+      <button onclick="openLogsModal()" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">📜 سجل الحركة</button>
+      <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display:none;">👤 المستخدمين</button>
+      <button onclick="logoutUser()" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">🔒 خروج</button>
     </div>
   </header>
 
@@ -285,12 +338,13 @@
             <th>الوزن المفقود</th>
             <th>نظام التغذية</th>
             <th>الفحوصات والأشعة</th>
+            <th>المسؤول عن التسجيل</th>
             <th>الملاحظات</th>
             <th>الإجراءات</th>
           </tr>
         </thead>
         <tbody id="postOpTableBody">
-          <tr><td colspan="14" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
+          <tr><td colspan="15" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
         </tbody>
       </table>
     </div>
@@ -343,6 +397,48 @@
   </div>
 </div>
 
+<!-- Modal Audit Logs (سجل الحركة والتعديلات) -->
+<div id="logsModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات متابعات Post-Op</h3>
+      <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <table>
+      <thead>
+        <tr style="background:#f1f5f9;">
+          <th style="padding:8px; border:1px solid var(--border);">الوقت والتاريخ</th>
+          <th style="padding:8px; border:1px solid var(--border);">الطبيب / المستخدم</th>
+          <th style="padding:8px; border:1px solid var(--border);">نوع الحركة</th>
+          <th style="padding:8px; border:1px solid var(--border);">تفاصيل الحركة</th>
+        </tr>
+      </thead>
+      <tbody id="logsTableBody">
+        <!-- Logs injected here -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Manage Users (Admin Only) -->
+<div id="usersModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">👤 إدارة الأطباء والمستخدمين</h3>
+      <button onclick="closeUsersModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px;">
+      <h4 style="margin-bottom: 10px;">➕ إضافة مستخدم / طبيب جديد:</h4>
+      <div class="grid">
+        <div class="field"><label>اسم المستخدم (اليوزر)</label><input type="text" id="newUsername" placeholder="مثال: dr_ahmed"></div>
+        <div class="field"><label>كلمة السر</label><input type="text" id="newPassword" placeholder="مثال: 123456"></div>
+        <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: د. أحمد تغذية"></div>
+      </div>
+      <button class="btn btn-success" onclick="addNewUser()">إضافة الطبيب / المستخدم أونلاين</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Image Viewer -->
 <div id="imageViewerModal" class="modal">
   <div class="modal-content" style="max-width: 700px; text-align: center;">
@@ -359,16 +455,114 @@
   const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  document.getElementById('followUpDate').valueAsDate = new Date();
-
+  let currentUser = null;
   let allPostOpRecords = [];
   let currentActiveDbId = null;
   let currentFormImages = [];
   let currentModalImages = [];
 
+  document.getElementById('followUpDate').valueAsDate = new Date();
+
   window.onload = function() {
-    fetchPostOpFromSupabase();
+    let savedUser = localStorage.getItem('activeSystemUser');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      initUserSession();
+    }
   };
+
+  async function loginUser() {
+    let u = document.getElementById('userInput').value.trim();
+    let p = document.getElementById('passInput').value.trim();
+    let err = document.getElementById('authError');
+
+    if (!u || !p) return err.style.display = 'block';
+
+    const { data, error } = await supabaseClient.from('system_users').select('*').eq('username', u).eq('password', p);
+
+    if (data && data.length > 0) {
+      currentUser = data[0];
+      localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
+      err.style.display = 'none';
+      initUserSession();
+      logActivity('تسجيل دخول', 'قام بتسجيل الدخول لنظام Post-Op');
+    } else {
+      err.style.display = 'block';
+    }
+  }
+
+  function initUserSession() {
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('mainContainer').style.display = 'block';
+    document.getElementById('userBadge').innerText = `👤 المستخدم: ${currentUser.full_name}`;
+    if (currentUser.role === 'admin') {
+      document.getElementById('manageUsersBtn').style.display = 'inline-block';
+    }
+    fetchPostOpFromSupabase();
+  }
+
+  function logoutUser() {
+    if(currentUser) logActivity('تسجيل خروج', 'قام بتسجيل الخروج من نظام Post-Op');
+    localStorage.removeItem('activeSystemUser');
+    currentUser = null;
+    document.getElementById('mainContainer').style.display = 'none';
+    document.getElementById('authOverlay').style.display = 'flex';
+  }
+
+  async function logActivity(actionType, details) {
+    if (!currentUser) return;
+    await supabaseClient.from('audit_logs').insert([{
+      username: currentUser.username,
+      full_name: currentUser.full_name,
+      action_type: actionType,
+      details: details
+    }]);
+  }
+
+  async function openLogsModal() {
+    let tbody = document.getElementById('logsTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px;">⏳ جاري جلب سجل الحركة...</td></tr>';
+    document.getElementById('logsModal').style.display = 'flex';
+
+    const { data, error } = await supabaseClient.from('audit_logs').select('*').order('id', { ascending: false }).limit(100);
+
+    if (!error && data) {
+      tbody.innerHTML = '';
+      data.forEach(log => {
+        let dateStr = new Date(log.created_at).toLocaleString('ar-EG');
+        tbody.innerHTML += `
+          <tr>
+            <td style="padding:6px; border:1px solid var(--border);">${dateStr}</td>
+            <td style="padding:6px; border:1px solid var(--border);"><b>${log.full_name}</b> (${log.username})</td>
+            <td style="padding:6px; border:1px solid var(--border);"><b style="color:var(--primary);">${log.action_type}</b></td>
+            <td style="padding:6px; border:1px solid var(--border);">${log.details}</td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
+  function openUsersModal() { document.getElementById('usersModal').style.display = 'flex'; }
+  function closeUsersModal() { document.getElementById('usersModal').style.display = 'none'; }
+
+  async function addNewUser() {
+    let username = document.getElementById('newUsername').value.trim();
+    let password = document.getElementById('newPassword').value.trim();
+    let full_name = document.getElementById('newFullName').value.trim();
+
+    if(!username || !password || !full_name) return alert('برجاء كتابة كل البيانات المطلوبة');
+
+    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: 'user' }]);
+
+    if(!error) {
+      alert('✅ تم إضافة الطبيب / المستخدم بنجاح!');
+      logActivity('إضافة مستخدم', `تم إنشاء يوزر جديد: ${full_name} (${username})`);
+      closeUsersModal();
+    } else {
+      alert('⚠️ تعذر الإضافة، قد يكون اسم المستخدم مكرراً.');
+    }
+  }
 
   // 🔄 سحب بيانات الحالة تلقائياً من Pre-Op بمجرد كتابة الكود
   async function fetchPatientDetailsByCode() {
@@ -453,12 +647,12 @@
 
   async function fetchPostOpFromSupabase() {
     let tbody = document.getElementById('postOpTableBody');
-    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
 
     const { data, error } = await supabaseClient.from('postop_records').select('*').order('id', { ascending: false });
 
     if (error) {
-      tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:#dc2626;">⚠️ يرجى التأكد من إضافة جدول postop_records في Supabase.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" style="text-align:center; color:#dc2626;">⚠️ يرجى التأكد من إضافة جدول postop_records في Supabase.</td></tr>';
     } else {
       allPostOpRecords = data.map(item => ({ dbId: item.id, ...item.data }));
       renderPostOpTable(allPostOpRecords);
@@ -470,7 +664,7 @@
     tbody.innerHTML = '';
 
     if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات متابعة مسجلة</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="15" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات متابعة مسجلة</td></tr>';
       return;
     }
 
@@ -494,6 +688,7 @@
           <td><span style="color:green; font-weight:bold;">${item.weightLost || '0'} كجم</span></td>
           <td>${item.dietStage || '-'}</td>
           <td>${item.followUpLabs || '-'}${imagesBtn}</td>
+          <td><span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${item.recordedBy || 'غير محدد'}</span></td>
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;" title="${item.doctorNotes || ''}">${item.doctorNotes || '-'}</td>
           <td>
             <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem;" onclick="openEditPostModal(${item.dbId})">✏️ تعديل</button>
@@ -549,13 +744,15 @@
       supplementAdherence: document.getElementById('supplementAdherence').value,
       followUpLabs: document.getElementById('followUpLabs').value,
       doctorNotes: document.getElementById('doctorNotes').value,
-      images: currentFormImages
+      images: currentFormImages,
+      recordedBy: currentUser ? currentUser.full_name : 'غير محدد'
     };
 
     const { error } = await supabaseClient.from('postop_records').insert([{ data: payload }]);
 
     if (!error) {
       alert("✅ تم حفظ سجل المتابعة في Post Operative أونلاين بنجاح!");
+      logActivity('تسجيل متابعة', `تم تسجيل متابعة جديدة للمريض: ${name} (كود: ${code}) بواسطة: ${payload.recordedBy}`);
       clearPostForm();
       fetchPostOpFromSupabase();
     } else {
@@ -592,6 +789,7 @@
       const { error } = await supabaseClient.from('postop_records').delete().eq('id', dbId);
       if (!error) {
         alert("✅ تم الحذف بنجاح.");
+        logActivity('حذف متابعة', `تم حذف متابعة المريض: ${item.name} (كود: ${item.code})`);
         fetchPostOpFromSupabase();
       }
     }
@@ -647,7 +845,8 @@
         currentBmi: document.getElementById('mBmi').value,
         weightLost: weightLost,
         doctorNotes: document.getElementById('mNotes').value,
-        images: currentModalImages
+        images: currentModalImages,
+        lastEditedBy: currentUser ? currentUser.full_name : 'غير محدد'
       };
       delete updatedPayload.dbId;
 
@@ -655,6 +854,7 @@
 
       if (!error) {
         alert("✅ تم تحديث بيانات المتابعة بنجاح!");
+        logActivity('تعديل متابعة', `تم تعديل متابعة المريض: ${item.name} (كود: ${item.code}) بواسطة: ${updatedPayload.lastEditedBy}`);
         closeEditModal();
         fetchPostOpFromSupabase();
       }
