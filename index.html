@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام إدارة العملاء  - د. بهاء شكري</title>
+<title>نظام إدارة العملاء - د. بهاء شكري</title>
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -44,7 +44,7 @@
   }
   .auth-box h2 { color: #0f4c5c; margin-bottom: 10px; font-size: 1.3rem; }
   .auth-box p { font-size: 0.88rem; color: #64748b; margin-bottom: 20px; }
-  .auth-box input {
+  .auth-box input, .auth-box select {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border);
@@ -161,12 +161,12 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة وتخزين بيانات العملاء</p>
+        <p>نظام إدارة وتخزين بيانات العملاء والحسابات</p>
       </div>
     </div>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
-      <button onclick="openLogsModal()" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">📜 سجل الحركة</button>
+      <button onclick="openLogsModal()" id="auditLogsBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display:none;">📜 سجل الحركة</button>
       <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display:none;">👤 المستخدمين</button>
       <button onclick="logoutUser()" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">🔒 خروج</button>
     </div>
@@ -504,11 +504,11 @@
   </div>
 </div>
 
-<!-- Modal Audit Logs -->
+<!-- Modal Audit Logs (خاص بالآدمن فقط) -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات النظام (Audit Trail)</h3>
+      <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات النظام (خاص بالإدارة)</h3>
       <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
     <table>
@@ -540,6 +540,14 @@
         <div class="field"><label>اسم المستخدم (اليوزر)</label><input type="text" id="newUsername" placeholder="مثال: mona"></div>
         <div class="field"><label>كلمة السر</label><input type="text" id="newPassword" placeholder="مثال: 123456"></div>
         <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: م. منى الحسابات"></div>
+        <div class="field">
+          <label>نوع وصلاحية الحساب:</label>
+          <select id="newUserRole">
+            <option value="accountant" selected>💼 موظف حسابات وماليات فقط</option>
+            <option value="doctor">🩺 دكتور متابعة وتغذية (بدون حسابات)</option>
+            <option value="admin">⭐ مدير نظام كامل (كل الصلاحيات)</option>
+          </select>
+        </div>
       </div>
       <button class="btn btn-success" onclick="addNewUser()">إضافة المستخدم أونلاين</button>
     </div>
@@ -578,30 +586,14 @@
     let savedUser = localStorage.getItem('activeSystemUser');
     if (savedUser) {
       currentUser = JSON.parse(savedUser);
-      initUserSession();
-    }
-  };
-
-  // 🔄 دالة البحث والسحب المباشر لبيانات المريض من شيت الـ Pre-Op بمجرد كتابة الكود
-  async function fetchPatientNameFromPreOp() {
-    let codeInput = document.getElementById('custCode').value.trim();
-    if (!codeInput) return;
-
-    const { data, error } = await supabaseClient.from('preop_records').select('*');
-
-    if (!error && data) {
-      let matchedRecord = data.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === codeInput.toLowerCase());
-      
-      if (matchedRecord) {
-        let p = matchedRecord.data;
-        document.getElementById('custName').value = p.patientName || '';
-        document.getElementById('operationType').value = p.operation || '';
-        document.getElementById('hospital').value = p.hospital || '';
-        document.getElementById('governorate').value = p.governorate || '';
-        if(p.opDate) document.getElementById('opDate').value = p.opDate;
+      // فحص الصلاحية للحساب المسجل مسبقاً
+      if (currentUser.role === 'admin' || currentUser.role === 'accountant') {
+        initUserSession();
+      } else {
+        logoutUser();
       }
     }
-  }
+  };
 
   async function loginUser() {
     let u = document.getElementById('userInput').value.trim();
@@ -613,11 +605,19 @@
     const { data, error } = await supabaseClient.from('system_users').select('*').eq('username', u).eq('password', p);
 
     if (data && data.length > 0) {
-      currentUser = data[0];
+      let user = data[0];
+
+      // 🔒 فحص الصلاحية: الدخول للحسابات مسموح فقط للآدمن وموظف الحسابات
+      if (user.role !== 'admin' && user.role !== 'accountant') {
+        alert('⛔ عذراً: هذا الحساب مخصص للأطباء وغير مصرح له بفتح نظام الحسابات والماليات.');
+        return;
+      }
+
+      currentUser = user;
       localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
       err.style.display = 'none';
       initUserSession();
-      logActivity('تسجيل دخول', 'قام الموظف بتسجيل الدخول للنظام بنجاح');
+      logActivity('تسجيل دخول', 'قام بتسجيل الدخول لنظام الحسابات');
     } else {
       err.style.display = 'block';
     }
@@ -627,14 +627,21 @@
     document.getElementById('authOverlay').style.display = 'none';
     document.getElementById('mainContainer').style.display = 'block';
     document.getElementById('userBadge').innerText = `👤 المستخدم: ${currentUser.full_name}`;
+    
+    // إظهار أزرار الإدارة وسجل الحركة للآدمن فقط
     if (currentUser.role === 'admin') {
       document.getElementById('manageUsersBtn').style.display = 'inline-block';
+      document.getElementById('auditLogsBtn').style.display = 'inline-block';
+    } else {
+      document.getElementById('manageUsersBtn').style.display = 'none';
+      document.getElementById('auditLogsBtn').style.display = 'none';
     }
+    
     fetchDataFromSupabase();
   }
 
   function logoutUser() {
-    if(currentUser) logActivity('تسجيل خروج', 'قام الموظف بتسجيل الخروج من النظام');
+    if(currentUser) logActivity('تسجيل خروج', 'قام بتسجيل الخروج من نظام الحسابات');
     localStorage.removeItem('activeSystemUser');
     currentUser = null;
     document.getElementById('mainContainer').style.display = 'none';
@@ -652,6 +659,8 @@
   }
 
   async function openLogsModal() {
+    if (!currentUser || currentUser.role !== 'admin') return alert('⚠️ خاص بالمشرف فقط');
+
     let tbody = document.getElementById('logsTableBody');
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">⏳ جاري جلب سجل الحركة...</td></tr>';
     document.getElementById('logsModal').style.display = 'flex';
@@ -675,24 +684,49 @@
   }
 
   function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
-  function openUsersModal() { document.getElementById('usersModal').style.display = 'flex'; }
+  function openUsersModal() { 
+    if (!currentUser || currentUser.role !== 'admin') return alert('⚠️ خاص بالمشرف فقط');
+    document.getElementById('usersModal').style.display = 'flex'; 
+  }
   function closeUsersModal() { document.getElementById('usersModal').style.display = 'none'; }
 
   async function addNewUser() {
     let username = document.getElementById('newUsername').value.trim();
     let password = document.getElementById('newPassword').value.trim();
     let full_name = document.getElementById('newFullName').value.trim();
+    let role = document.getElementById('newUserRole').value;
 
     if(!username || !password || !full_name) return alert('برجاء كتابة كل البيانات المطلوبة');
 
-    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: 'user' }]);
+    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: role }]);
 
     if(!error) {
       alert('✅ تم إضافة المستخدم أونلاين بنجاح!');
-      logActivity('إضافة مستخدم', `تم إنشاء يوزر جديد: ${full_name} (${username})`);
+      logActivity('إضافة مستخدم', `تم إنشاء يوزر جديد: ${full_name} (${username}) بصلاحية: ${role}`);
       closeUsersModal();
     } else {
       alert('⚠️ تعذر الإضافة، قد يكون اسم المستخدم مكرراً.');
+    }
+  }
+
+  // 🔄 دالة البحث والسحب المباشر لبيانات المريض من شيت الـ Pre-Op بمجرد كتابة الكود
+  async function fetchPatientNameFromPreOp() {
+    let codeInput = document.getElementById('custCode').value.trim();
+    if (!codeInput) return;
+
+    const { data, error } = await supabaseClient.from('preop_records').select('*');
+
+    if (!error && data) {
+      let matchedRecord = data.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === codeInput.toLowerCase());
+      
+      if (matchedRecord) {
+        let p = matchedRecord.data;
+        document.getElementById('custName').value = p.patientName || '';
+        document.getElementById('operationType').value = p.operation || '';
+        document.getElementById('hospital').value = p.hospital || '';
+        document.getElementById('governorate').value = p.governorate || '';
+        if(p.opDate) document.getElementById('opDate').value = p.opDate;
+      }
     }
   }
 
@@ -774,15 +808,12 @@
     document.getElementById('companyBox').style.display = (type === 'company') ? 'block' : 'none';
   }
 
-  // 🔒 فحص عدم تكرار كود العميل قبل الحفظ أونلاين
   async function checkCodeExists(code, currentDbId = -1) {
     let codeClean = code.trim().toLowerCase();
 
-    // 1. فحص الكود بالعملاء المسجلين في نظام الحسابات محلياً وفياً
     let duplicateLocal = customersList.find(c => c.code && c.code.trim().toLowerCase() === codeClean && c.dbId !== currentDbId);
     if (duplicateLocal) return true;
 
-    // 2. فحص الكود بقاعدة بيانات السحابة لحسابات العملاء
     const { data: custData } = await supabaseClient.from('customers').select('*');
     if (custData) {
       let isDuplicateCust = custData.some(item => item.id !== currentDbId && item.data && item.data.code && item.data.code.trim().toLowerCase() === codeClean);
@@ -813,7 +844,6 @@
     let gId = document.getElementById('gId').value || '';
     let gPhone = document.getElementById('gPhone').value || '';
 
-    // ⛔ التحقق المباشر من عدم تكرار الكود
     let isCodeExists = await checkCodeExists(code, editDbId);
     if (isCodeExists) {
       alert(`⚠️ خطأ: كود العميل (${code}) مسجل بالفعل بنظام الحسابات! لا يمكن تكرار الأكواد.`);
@@ -893,7 +923,6 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // 🗑️ دالة حذف العميل من السيستم وقاعدة البيانات أونلاين
   async function deleteCustomerByDbId(dbId) {
     let c = customersList.find(item => item.dbId === dbId);
     if(!c) return;
@@ -905,7 +934,7 @@
 
       if(!error) {
         alert(`✅ تم حذف العميل (${c.name}) بنجاح.`);
-        logActivity('حذف عميل', `تم حذف العميل: ${c.name} (كود: ${c.code}) نهائياً من السيستم`);
+        logActivity('حذف عميل', `تم حذف العميل: ${c.name} (كود: ${c.code}) نهائياً`);
         fetchDataFromSupabase();
       } else {
         alert('⚠️ تعذر حذف العميل، يرجى مراجعة الاتصال بالإنترنت.');
@@ -1002,7 +1031,6 @@
     document.getElementById('customerModal').style.display = 'none';
   }
 
-  /* Invoice System Functionalities */
   function openInvoiceModalByDbId(dbId) {
     currentActiveDbId = dbId;
     let c = customersList.find(item => item.dbId === dbId);
@@ -1140,7 +1168,7 @@
     document.getElementById('pDate').innerText = 'تاريخ الإصدار: ' + new Date().toLocaleDateString('ar-EG');
     document.getElementById('pContent').innerHTML = printHTML;
 
-    logActivity('طباعة فاتورة', `تم اصدار فاتورة للعميل: ${c.name} (${c.code}) بقيمة إجمالية: ${grandTotal.toLocaleString()} ج.م (نسبة الضريبة: ${taxRate}%)`);
+    logActivity('طباعة فاتورة', `تم اصدار فاتورة للعميل: ${c.name} (${c.code}) بقيمة إجمالية: ${grandTotal.toLocaleString()} ج.م`);
 
     closeInvoiceModal();
     document.getElementById('printReceiptArea').style.display = 'block';
@@ -1148,7 +1176,6 @@
     document.getElementById('printReceiptArea').style.display = 'none';
   }
 
-  /* Report System Functionalities (تقرير الحالة والماليات) */
   function openReportModalByDbId(dbId) {
     currentActiveDbId = dbId;
     let c = customersList.find(item => item.dbId === dbId);
@@ -1184,7 +1211,6 @@
     let showFinancials = document.getElementById('repShowFinancials').checked && (repType === 'full_summary');
     let medicalNotes = document.getElementById('repMedicalText').value.trim();
 
-    // جلب بيانات الإمكانيات والقياسات من Pre-Op إذا وجدت
     let preOpInfo = { age: '-', weight: '-', height: '-', bmi: '-', mh: '-', labs: '-' };
     const { data } = await supabaseClient.from('preop_records').select('*');
     if (data) {
@@ -1298,7 +1324,7 @@
     document.getElementById('instDate').value = '';
     
     if(!error) {
-      alert('✅ تمت إضافة القسط و خصمه أونلاين بنجاح!');
+      alert('✅ تمت إضافة القسط وخصمه أونلاين بنجاح!');
       logActivity('تسديد قسط', `تم تحصيل قسط بقيمة ${amount} ج.م للعميل: ${c.name} (${c.code})`);
       fetchDataFromSupabase();
       closeModal();
@@ -1386,7 +1412,6 @@
     document.getElementById('printReceiptArea').style.display = 'none';
   }
 
-  // 🖨️ طباعة كشف تجميعي شامل لكل الحالات وفقاً للفلتر والبحث الحالي
   function printFullCustomersReport() {
     let filterVal = document.getElementById('statusFilter').value;
     let filterLabel = "كافة الحالات";
