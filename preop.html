@@ -23,8 +23,41 @@
   
   * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
   body { background-color: var(--bg); color: var(--text); padding: 15px; line-height: 1.4; }
-  .container { max-width: 100%; margin: 0 auto; }
+  .container { max-width: 100%; margin: 0 auto; display: none; }
   
+  /* Auth Screen Overlay */
+  #authOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #0f4c5c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .auth-box {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  }
+  .auth-box h2 { color: #0f4c5c; margin-bottom: 10px; font-size: 1.3rem; }
+  .auth-box p { font-size: 0.88rem; color: #64748b; margin-bottom: 20px; }
+  .auth-box input, .auth-box select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .auth-box input:focus { border-color: var(--primary); }
+
   header { 
     background: var(--primary); 
     color: white; 
@@ -36,6 +69,8 @@
     justify-content: space-between;
     box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); 
     border-bottom: 3px solid var(--accent-lime);
+    flex-wrap: wrap;
+    gap: 12px;
   }
   .brand-logo { display: flex; align-items: center; gap: 14px; }
   .logo-box {
@@ -97,7 +132,19 @@
 </head>
 <body>
 
-<div class="container">
+<!-- Lock Screen for Authorization -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <h2>🔑 تسجيل الدخول لنظام Pre-Op</h2>
+    <p>يرجى كتابة اسم المستخدم وكلمة السر المخصصة لك</p>
+    <input type="text" id="userInput" placeholder="اسم المستخدم (Username)...">
+    <input type="password" id="passInput" placeholder="كلمة السر (Password)..." onkeypress="if(event.key==='Enter') loginUser()">
+    <button class="btn" onclick="loginUser()">دخول النظام 🔓</button>
+    <div id="authError" style="color: var(--danger); font-size: 0.85rem; margin-top: 10px; display: none;">❌ بيانات الدخول غير صحيحة!</div>
+  </div>
+</div>
+
+<div class="container" id="mainContainer">
   <!-- Header -->
   <header>
     <div class="brand-logo">
@@ -108,6 +155,12 @@
         <h1>د. بهاء شكري - نظام تقييم ما قبل العملية (Pre-Op Log)</h1>
         <p>التشخيص الإكلينيكي الكامل والشيت الطبي الجراحي</p>
       </div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
+      <button onclick="openLogsModal()" id="auditLogsBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: none;">📜 سجل الحركة</button>
+      <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: none;">👤 المستخدمين</button>
+      <button onclick="logoutUser()" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold;">🔒 خروج</button>
     </div>
   </header>
 
@@ -250,11 +303,12 @@
             <th>Operation</th>
             <th>Pre Op prep</th>
             <th>Intra operative</th>
+            <th>المسؤول عن الإدخال</th>
             <th>الإجراءات</th>
           </tr>
         </thead>
         <tbody id="dailyTableBody">
-          <tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
+          <tr><td colspan="19" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
         </tbody>
       </table>
     </div>
@@ -349,6 +403,7 @@
               <th>Operation</th>
               <th>Pre Op prep</th>
               <th>Intra operative</th>
+              <th>المسؤول عن الإدخال</th>
               <th>الإجراءات</th>
             </tr>
           </thead>
@@ -411,6 +466,56 @@
   </div>
 </div>
 
+<!-- Modal Audit Logs (سجل الحركة والتعديلات - للآدمن فقط) -->
+<div id="logsModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات شيت Pre-Op (خاص بالإدارة)</h3>
+      <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <table>
+      <thead>
+        <tr style="background:#f1f5f9;">
+          <th style="padding:8px; border:1px solid var(--border);">الوقت والتاريخ</th>
+          <th style="padding:8px; border:1px solid var(--border);">الطبيب / المستخدم</th>
+          <th style="padding:8px; border:1px solid var(--border);">نوع الحركة</th>
+          <th style="padding:8px; border:1px solid var(--border);">تفاصيل الحركة</th>
+        </tr>
+      </thead>
+      <tbody id="logsTableBody">
+        <!-- Logs injected here -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Manage Users (Admin Only) -->
+<div id="usersModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">👤 إدارة الأطباء والمستخدمين</h3>
+      <button onclick="closeUsersModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px;">
+      <h4 style="margin-bottom: 10px;">➕ إضافة مستخدم / طبيب جديد:</h4>
+      <div class="grid">
+        <div class="field"><label>اسم المستخدم (اليوزر)</label><input type="text" id="newUsername" placeholder="مثال: dr_ahmed"></div>
+        <div class="field"><label>كلمة السر</label><input type="text" id="newPassword" placeholder="مثال: 123456"></div>
+        <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: د. أحمد جراحة"></div>
+        <div class="field">
+          <label>نوع وصلاحية الحساب:</label>
+          <select id="newUserRole">
+            <option value="doctor" selected>🩺 دكتور جراحة وتغذية (بدون حسابات)</option>
+            <option value="accountant">💼 موظف حسابات وماليات فقط</option>
+            <option value="admin">⭐ مدير نظام كامل (كل الصلاحيات)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-success" onclick="addNewUser()">إضافة الطبيب / المستخدم أونلاين</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Image Viewer (معاينة وتكبير صور الأشعة والتحاليل) -->
 <div id="imageViewerModal" class="modal">
   <div class="modal-content" style="max-width: 750px; text-align: center;">
@@ -427,18 +532,144 @@
   const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  document.getElementById('opDate').valueAsDate = new Date();
-  document.getElementById('filterOpDate').valueAsDate = new Date();
-  document.getElementById('sheetDateFilter').valueAsDate = new Date();
-
+  let currentUser = null;
   let allPreOpRecords = [];
   let currentActiveDbId = null;
   let currentFormLabImages = [];
   let currentModalLabImages = [];
 
+  document.getElementById('opDate').valueAsDate = new Date();
+  document.getElementById('filterOpDate').valueAsDate = new Date();
+  document.getElementById('sheetDateFilter').valueAsDate = new Date();
+
   window.onload = function() {
-    fetchPreOpFromSupabase();
+    let savedUser = localStorage.getItem('activeSystemUser');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      // 🔒 فحص الصلاحية للحساب المسجل مسبقاً
+      if (currentUser.role === 'admin' || currentUser.role === 'doctor') {
+        initUserSession();
+      } else {
+        logoutUser();
+      }
+    }
   };
+
+  async function loginUser() {
+    let u = document.getElementById('userInput').value.trim();
+    let p = document.getElementById('passInput').value.trim();
+    let err = document.getElementById('authError');
+
+    if (!u || !p) return err.style.display = 'block';
+
+    const { data, error } = await supabaseClient.from('system_users').select('*').eq('username', u).eq('password', p);
+
+    if (data && data.length > 0) {
+      let user = data[0];
+
+      // 🔒 فحص الصلاحية: مسموح فقط للآدمن والأطباء
+      if (user.role === 'accountant') {
+        alert('⛔ عذراً: حسابات موظفي الحسابات غير مصرح لها بالدخول إلى الشيتات الطبية.');
+        return;
+      }
+
+      currentUser = user;
+      localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
+      err.style.display = 'none';
+      initUserSession();
+      logActivity('تسجيل دخول', 'قام بتسجيل الدخول لنظام Pre-Op');
+    } else {
+      err.style.display = 'block';
+    }
+  }
+
+  function initUserSession() {
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('mainContainer').style.display = 'block';
+    document.getElementById('userBadge').innerText = `👤 المستخدم: ${currentUser.full_name}`;
+    
+    // 🔒 إظهار أزرار الإدارة وسجل الحركة للآدمن فقط
+    if (currentUser.role === 'admin') {
+      document.getElementById('manageUsersBtn').style.display = 'inline-block';
+      document.getElementById('auditLogsBtn').style.display = 'inline-block';
+    } else {
+      document.getElementById('manageUsersBtn').style.display = 'none';
+      document.getElementById('auditLogsBtn').style.display = 'none';
+    }
+    
+    fetchPreOpFromSupabase();
+  }
+
+  function logoutUser() {
+    if(currentUser) logActivity('تسجيل خروج', 'قام بتسجيل الخروج من نظام Pre-Op');
+    localStorage.removeItem('activeSystemUser');
+    currentUser = null;
+    document.getElementById('mainContainer').style.display = 'none';
+    document.getElementById('authOverlay').style.display = 'flex';
+  }
+
+  async function logActivity(actionType, details) {
+    if (!currentUser) return;
+    await supabaseClient.from('audit_logs').insert([{
+      username: currentUser.username,
+      full_name: currentUser.full_name,
+      action_type: actionType,
+      details: details
+    }]);
+  }
+
+  async function openLogsModal() {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return alert('⚠️ غير مسموح: سجل الحركة متاح فقط للمشرف (Admin).');
+    }
+
+    let tbody = document.getElementById('logsTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px;">⏳ جاري جلب سجل الحركة...</td></tr>';
+    document.getElementById('logsModal').style.display = 'flex';
+
+    const { data, error } = await supabaseClient.from('audit_logs').select('*').order('id', { ascending: false }).limit(100);
+
+    if (!error && data) {
+      tbody.innerHTML = '';
+      data.forEach(log => {
+        let dateStr = new Date(log.created_at).toLocaleString('ar-EG');
+        tbody.innerHTML += `
+          <tr>
+            <td style="padding:6px; border:1px solid var(--border);">${dateStr}</td>
+            <td style="padding:6px; border:1px solid var(--border);"><b>${log.full_name}</b> (${log.username})</td>
+            <td style="padding:6px; border:1px solid var(--border);"><b style="color:var(--primary);">${log.action_type}</b></td>
+            <td style="padding:6px; border:1px solid var(--border);">${log.details}</td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  function closeLogsModal() { document.getElementById('logsModal').style.display = 'none'; }
+  function openUsersModal() { 
+    if (!currentUser || currentUser.role !== 'admin') return alert('⚠️ خاص بالمشرف فقط');
+    document.getElementById('usersModal').style.display = 'flex'; 
+  }
+  function closeUsersModal() { document.getElementById('usersModal').style.display = 'none'; }
+
+  async function addNewUser() {
+    let username = document.getElementById('newUsername').value.trim();
+    let password = document.getElementById('newPassword').value.trim();
+    let full_name = document.getElementById('newFullName').value.trim();
+    let role = document.getElementById('newUserRole').value;
+
+    if(!username || !password || !full_name) return alert('برجاء كتابة كل البيانات المطلوبة');
+
+    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: role }]);
+
+    if(!error) {
+      alert('✅ تم إضافة الطبيب / المستخدم بنجاح!');
+      logActivity('إضافة مستخدم', `تم إنشاء يوزر جديد: ${full_name} (${username}) بصلاحية: ${role}`);
+      closeUsersModal();
+    } else {
+      alert('⚠️ تعذر الإضافة، قد يكون اسم المستخدم مكرراً.');
+    }
+  }
 
   function calculateBMI() {
     let wt = parseFloat(document.getElementById('weight').value);
@@ -460,7 +691,6 @@
     }
   }
 
-  // 📷 معالجة وتحويل صور التحاليل والأشعة إلى Base64 مع المعاينة
   function handleLabImages(input, previewContainerId) {
     let container = document.getElementById(previewContainerId);
     if (input.files) {
@@ -494,12 +724,12 @@
 
   async function fetchPreOpFromSupabase() {
     let tbody = document.getElementById('dailyTableBody');
-    tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="19" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
 
     const { data, error } = await supabaseClient.from('preop_records').select('*').order('id', { ascending: false });
 
     if (error) {
-      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، يرجى التأكد من إضافة جدول preop_records في Supabase.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="19" style="text-align:center; color:#dc2626;">⚠️ تعذر الجلب، يرجى التأكد من إضافة جدول preop_records في Supabase.</td></tr>';
     } else {
       allPreOpRecords = data.map(item => ({ dbId: item.id, ...item.data }));
       filterDailyList();
@@ -595,10 +825,12 @@
       updatedPayload.opStatus = statusSelect;
       updatedPayload.opDate = opDateVal;
       updatedPayload.patientCode = codeVal;
+      updatedPayload.lastActionBy = currentUser ? currentUser.full_name : 'غير محدد';
 
       const { error } = await supabaseClient.from('preop_records').update({ data: updatedPayload }).eq('id', dbId);
 
       if (!error) {
+        logActivity('تحديث موقف الحالة', `تم تعديل حالة العملية للمريض: ${item.patientName} إلى (${statusSelect}) وكود: (${codeVal})`);
         fetchPreOpFromSupabase();
       }
     }
@@ -609,7 +841,7 @@
     tbody.innerHTML = '';
 
     if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="18" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات مطابقة</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="19" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات مطابقة</td></tr>';
       return;
     }
 
@@ -638,6 +870,7 @@
           <td>${item.operation || '-'}</td>
           <td>${item.preOpPrep || '-'}</td>
           <td>${item.intraOp || '-'}</td>
+          <td><span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${item.recordedBy || 'غير محدد'}</span></td>
           <td>
             <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem;" onclick="openEditModal(${item.dbId})">✏️ تعديل</button>
             <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="deletePreOpRecord(${item.dbId})">🗑️ حذف</button>
@@ -729,19 +962,20 @@
       labImages: currentFormLabImages,
       opStatus: 'pending',
       patientCode: '',
-      notes: ''
+      notes: '',
+      recordedBy: currentUser ? currentUser.full_name : 'غير محدد'
     };
 
     const { error } = await supabaseClient.from('preop_records').insert([{ data: payload }]);
 
     if (!error) {
       alert("✅ تم إدراج الحالة وصور الأشعة في شيت Pre-Op أونلاين بنجاح!");
+      logActivity('إدراج حالة Pre-Op', `تم إدراج حالة جديدة: ${patientName} بواسطة: ${payload.recordedBy}`);
       clearForm();
       fetchPreOpFromSupabase();
     }
   }
 
-  // 🗑️ دالة حذف الحالة من شيت الـ Pre-Op
   async function deletePreOpRecord(dbId) {
     let item = allPreOpRecords.find(a => a.dbId === dbId);
     if (!item) return;
@@ -753,6 +987,7 @@
 
       if (!error) {
         alert(`✅ تم حذف حالة المريض (${item.patientName}) بنجاح.`);
+        logActivity('حذف حالة Pre-Op', `تم حذف حالة المريض: ${item.patientName}`);
         fetchPreOpFromSupabase();
       } else {
         alert("⚠️ تعذر الحذف، يرجى مراجعة الاتصال بالإنترنت.");
@@ -845,7 +1080,8 @@
         operation: document.getElementById('mOperation').value,
         preOpPrep: document.getElementById('mPrePrep').value,
         intraOp: document.getElementById('mIntraOp').value,
-        labImages: currentModalLabImages
+        labImages: currentModalLabImages,
+        lastEditedBy: currentUser ? currentUser.full_name : 'غير محدد'
       };
       delete updatedPayload.dbId;
 
@@ -853,6 +1089,7 @@
 
       if (!error) {
         alert("✅ تم تحديث بيانات الحالة والمرفقات بالشيت أونلاين بنجاح!");
+        logActivity('تعديل حالة Pre-Op', `تم تعديل بيانات المريض: ${updatedPayload.patientName} بواسطة: ${updatedPayload.lastEditedBy}`);
         closeModal();
         fetchPreOpFromSupabase();
       }
