@@ -107,6 +107,8 @@
   .btn-danger { background: var(--danger); color: white; }
   .btn-secondary { background: #475569; }
   .btn-info { background: #0284c7; color: white; }
+  .btn-report { background: #0284c7; color: white; }
+  .btn-report:hover { background: #0369a1; }
 
   /* Table Styling */
   .table-responsive { overflow-x: auto; max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; }
@@ -122,6 +124,21 @@
 
   .gallery-preview { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
   .gallery-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+
+  @media print {
+    body * { visibility: hidden !important; }
+    #printReceiptArea, #printReceiptArea * { visibility: visible !important; }
+    #printReceiptArea { 
+      display: block !important;
+      position: absolute !important; 
+      left: 0 !important; 
+      top: 0 !important; 
+      width: 100% !important; 
+      padding: 20px !important; 
+      background: #fff !important;
+      color: #000 !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -397,10 +414,29 @@
   </div>
 </div>
 
+<!-- Modal Report Preparation (إعداد التقرير الطبي الشامل من Post-Op) -->
+<div id="reportModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 id="repModalTitle" style="color: var(--primary);">📄 إعداد التقرير الطبي والمتابعة الشاملة</h3>
+      <button onclick="closeReportModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+
+    <input type="hidden" id="repPatientCode">
+
+    <div class="field" style="margin-bottom: 16px;">
+      <label style="font-weight: bold; color: var(--primary);">✍️ التقرير الطبي، الملاحظات الإكلينيكية، وتوصيات التغذية الحالية:</label>
+      <textarea id="repMedicalText" rows="5" placeholder="اكتب هنا التوصيات الطبية والغذائية التفصيلية للحالة..." style="font-size: 0.95rem; line-height: 1.5;"></textarea>
+    </div>
+
+    <button class="btn btn-report" style="width:100%; padding:12px; font-size:1rem;" onclick="printPostOpPatientReport()">🖨️ معاينة وتوليد التقرير الشامل للطباعة</button>
+  </div>
+</div>
+
 <!-- Modal Audit Logs (سجل الحركة والتعديلات - للآدمن فقط) -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
       <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات متابعات Post-Op (خاص بالإدارة)</h3>
       <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
@@ -458,6 +494,21 @@
   </div>
 </div>
 
+<!-- Printable Section Template with Logo -->
+<div id="printReceiptArea" style="display: none;">
+  <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 15px;">
+    <div style="width:75px; height:75px; border-radius:50%; overflow:hidden; border:1px solid #000;">
+      <img src="Logo.png" alt="Logo" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.png'; this.onerror=null;">
+    </div>
+    <div>
+      <h2 style="margin:0;">🩺 د. بهاء شكري - Dr. Bahaa Shoukry</h2>
+      <p style="margin:2px 0;">استشاري جراحات السمنة والمناظير</p>
+      <p id="pDate" style="margin-top: 5px; font-size: 0.9rem;"></p>
+    </div>
+  </div>
+  <div id="pContent"></div>
+</div>
+
 <script>
   const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
   const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
@@ -475,7 +526,6 @@
     let savedUser = localStorage.getItem('activeSystemUser');
     if (savedUser) {
       currentUser = JSON.parse(savedUser);
-      // 🔒 فحص الصلاحية للحساب المسجل مسبقاً
       if (currentUser.role === 'admin' || currentUser.role === 'doctor') {
         initUserSession();
       } else {
@@ -496,7 +546,6 @@
     if (data && data.length > 0) {
       let user = data[0];
 
-      // 🔒 فحص الصلاحية: الدخول للمتابعات الطبية مسموح فقط للآدمن والأطباء
       if (user.role === 'accountant') {
         alert('⛔ عذراً: حسابات موظفي الحسابات غير مصرح لها بالدخول إلى الشيتات والمتابعات الطبية.');
         return;
@@ -517,7 +566,6 @@
     document.getElementById('mainContainer').style.display = 'block';
     document.getElementById('userBadge').innerText = `👤 المستخدم: ${currentUser.full_name}`;
     
-    // 🔒 إظهار أزرار الإدارة وسجل الحركة للآدمن فقط
     if (currentUser.role === 'admin') {
       document.getElementById('manageUsersBtn').style.display = 'inline-block';
       document.getElementById('auditLogsBtn').style.display = 'inline-block';
@@ -726,7 +774,8 @@
           <td><span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${item.recordedBy || 'غير محدد'}</span></td>
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;" title="${item.doctorNotes || ''}">${item.doctorNotes || '-'}</td>
           <td>
-            <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem;" onclick="openEditPostModal(${item.dbId})">✏️ تعديل</button>
+            <button class="btn btn-report" style="padding:3px 8px; font-size:0.75rem;" onclick="openReportModal(${item.dbId})">📄 التقرير المفصل</button>
+            <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="openEditPostModal(${item.dbId})">✏️ تعديل</button>
             <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="deletePostOpRecord(${item.dbId})">🗑️ حذف</button>
           </td>
         </tr>
@@ -894,6 +943,186 @@
         fetchPostOpFromSupabase();
       }
     }
+  }
+
+  /* 📄 إعداد وفتح نافذة التقرير المفصل من شيت Post-Op */
+  function openReportModal(dbId) {
+    let item = allPostOpRecords.find(a => a.dbId === dbId);
+    if (!item) return;
+
+    currentActiveDbId = dbId;
+    document.getElementById('repPatientCode').value = item.code || '';
+    document.getElementById('repModalTitle').innerText = `📄 إعداد التقرير الطبي الشامل: ${item.name} (${item.code || '-'})`;
+    document.getElementById('repMedicalText').value = item.doctorNotes ? `[آخر ملاحظات مسجلة]: ${item.doctorNotes}` : `الحالة مستقرة وتوصى بالالتزام التام بالنظام الغذائي المقرر، شرب السوائل بانتظام، تناول الفيتامينات، وإجراء التحاليل الدورية.`;
+
+    document.getElementById('reportModal').style.display = 'flex';
+  }
+
+  function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+  }
+
+  /* 🖨️ توليد وطباعة التقرير الشامل والمفصل المربوط بـ (Pre-Op + العيادات + Post-Op) */
+  async function printPostOpPatientReport() {
+    let currentPost = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
+    if (!currentPost) return;
+
+    let patientCode = currentPost.code || '';
+    let patientName = currentPost.name || '';
+    let doctorRecommendations = document.getElementById('repMedicalText').value.trim();
+
+    // 1. جلب بيانات Pre-Op
+    let preOpInfo = { age: '-', weight: currentPost.preOpWeight || '-', height: currentPost.height || '-', bmi: '-', mh: '-', labs: '-', opDate: currentPost.opDate || '-', operation: currentPost.operation || '-', hospital: '-' };
+    const { data: preOpData } = await supabaseClient.from('preop_records').select('*');
+    if (preOpData && patientCode) {
+      let matched = preOpData.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === patientCode.toLowerCase());
+      if (matched && matched.data) {
+        preOpInfo = { ...preOpInfo, ...matched.data };
+      }
+    }
+
+    // 2. جلب سجل حضور العيادات
+    let clinicVisitsHTML = '';
+    const { data: appData } = await supabaseClient.from('appointments').select('*');
+    if (appData) {
+      let matchedApps = appData.filter(item => item.data && (
+        (patientCode && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === patientCode.toLowerCase()) ||
+        (item.data.name && item.data.name.trim().toLowerCase() === patientName.trim().toLowerCase())
+      ));
+
+      if (matchedApps.length > 0) {
+        let appRows = '';
+        matchedApps.forEach((a, i) => {
+          let app = a.data;
+          let statusText = (app.status === 'done') ? '✅ تم الحضور' : ((app.status === 'cancelled') ? '❌ ملغى' : '⏳ حجز معلق');
+          appRows += `
+            <tr>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${i+1}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${app.date || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${app.clinic || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${app.visitType || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${statusText}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${app.notes || '-'}</td>
+            </tr>
+          `;
+        });
+
+        clinicVisitsHTML = `
+          <h4 style="margin-top:14px; margin-bottom:6px; background:#f0f9ff; padding:6px; border-radius:4px; color:#0369a1;">🏥 سجل حضور وزيارات العيادات الخارجية (Clinic Visits):</h4>
+          <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.88rem;">
+            <thead>
+              <tr style="background:#e0f2fe;">
+                <th style="border:1px solid #cbd5e1; padding:6px;">#</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">تاريخ الزيارة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">الفرع</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">نوع الزيارة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">الحالة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">ملاحظات العيادة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${appRows}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    // 3. جلب جميع متابعات المريض من Post-Op
+    let postOpVisitsHTML = '';
+    let matchedPost = allPostOpRecords.filter(item => (
+      (patientCode && item.code && item.code.trim().toLowerCase() === patientCode.toLowerCase()) ||
+      (item.name && item.name.trim().toLowerCase() === patientName.trim().toLowerCase())
+    ));
+
+    if (matchedPost.length > 0) {
+      let postRows = '';
+      matchedPost.forEach((p, i) => {
+        postRows += `
+          <tr>
+            <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${i+1}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${p.followUpDate || '-'}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${p.visitMilestone || '-'}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${p.currentWeight || '-'} كجم (BMI: ${p.currentBmi || '-'})</td>
+            <td style="border:1px solid #cbd5e1; padding:6px; text-align:center; color:green; font-weight:bold;">${p.weightLost || '0'} كجم</td>
+            <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${p.dietStage || '-'}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px; font-size:0.82rem;">${p.doctorNotes || '-'}</td>
+          </tr>
+        `;
+      });
+
+      postOpVisitsHTML = `
+        <h4 style="margin-top:14px; margin-bottom:6px; background:#f0fdf4; padding:6px; border-radius:4px; color:#166534;">📊 سجل ومتابعات ما بعد العملية ومعدل نزول الوزن (Post-Op Tracking):</h4>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.88rem;">
+          <thead>
+            <tr style="background:#dcfce7;">
+              <th style="border:1px solid #cbd5e1; padding:6px;">#</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">تاريخ المتابعة</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">مرحلة الزيارة</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">الوزن و BMI</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">الوزن المفقود</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">النظام الغذائي</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">توصيات وملاحظات المتابعة</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${postRows}
+          </tbody>
+        </table>
+      `;
+    }
+
+    let printHTML = `
+      <div style="font-size:1rem; line-height:1.7; color:#000;">
+        <div style="text-align:center; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:8px;">
+          <h3 style="margin:0; font-size:1.35rem; color:#0f4c5c;">تقرير تقييم ومتابعة حالة المريض الشامل والمفصل</h3>
+          <p style="margin:2px 0; font-size:0.88rem;">كود المريض: <b>${patientCode || '-'}</b> | تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</p>
+        </div>
+
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">👤 أولاً: البيانات الإكلينيكية والجراحية الأساسية (Pre-Op Data):</h4>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.92rem;">
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>اسم المريض:</b> ${patientName}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الإجراء الجراحي:</b> ${preOpInfo.operation || currentPost.operation || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>تاريخ إجراء العملية:</b> ${preOpInfo.opDate || currentPost.opDate || '-'}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>المستشفى:</b> ${preOpInfo.hospital || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الوزن الأساسي قبل العملية:</b> ${preOpInfo.weight || '-'} كجم</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الطول / BMI الأساسي:</b> ${preOpInfo.height || '-'} سم / (<b>${preOpInfo.bmi || '-'}</b>)</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الدكتور المشرف (جراحة):</b> ${currentPost.docSurg || 'د. بهاء شكري'}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الدكتور المشرف (تغذية):</b> ${currentPost.docNutrition || '-'}</td>
+          </tr>
+        </table>
+
+        ${clinicVisitsHTML}
+        ${postOpVisitsHTML}
+
+        ${doctorRecommendations ? `
+          <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">🩺 توصيات وخطة العلاج والمتابعة القادمة:</h4>
+          <div style="border:1px solid #cbd5e1; padding:12px; border-radius:6px; margin-bottom:15px; background:#fafafa; white-space: pre-wrap; font-size:0.95rem; line-height:1.8;">${doctorRecommendations}</div>
+        ` : ''}
+
+        <div style="margin-top:35px; display:flex; justify-content:space-between; padding-top:15px; border-top:1px dashed #000; font-size:0.9rem;">
+          <div><b>توقيع استشاري جراحات السمنة:</b> ..........................</div>
+          <div><b>توقيع استشاري التغذية العلاجية:</b> ..........................</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
+    document.getElementById('pContent').innerHTML = printHTML;
+
+    logActivity('طباعة تقرير مفصل', `تم اصدار تقرير شامل للمريض: ${patientName} (كود: ${patientCode}) من نظام Post-Op`);
+
+    closeReportModal();
+    document.getElementById('printReceiptArea').style.display = 'block';
+    window.print();
+    document.getElementById('printReceiptArea').style.display = 'none';
   }
 
   function viewPostOpImages(dbId) {
