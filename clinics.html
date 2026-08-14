@@ -111,7 +111,7 @@
       </div>
       <div class="header-text">
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-        <p>نظام إدارة حجوزات العيادات </p>
+        <p>نظام إدارة حجوزات العيادات</p>
       </div>
     </div>
     <button class="btn btn-secondary" onclick="toggleClinicManager()">⚙️ إدارة الفروع والعيادات</button>
@@ -162,6 +162,20 @@
     
     <div class="grid">
       <div class="field">
+        <label>نوع الزيارة / الحجز</label>
+        <select id="bookingVisitType" onchange="toggleBookingVisitFields()">
+          <option value="كشف جديد">كشف جديد</option>
+          <option value="متابعة">متابعة (بعد العملية)</option>
+          <option value="أخرى">أخرى (تحديد بيان)</option>
+        </select>
+      </div>
+
+      <div class="field" id="bookingPatientCodeBox" style="display: none;">
+        <label style="color: var(--primary); font-weight: bold;">🔑 كود المريض (اكتب الكود لسحب البيانات):</label>
+        <input type="text" id="bookingPatientCode" placeholder="مثال: C-101" onchange="fetchPatientDetailsFromPreOp('booking')">
+      </div>
+
+      <div class="field">
         <label>اسم المريض بالكامل</label>
         <input type="text" id="patientName" placeholder="مثال: أحمد محمود">
       </div>
@@ -172,14 +186,6 @@
       <div class="field">
         <label>رقم التليفون 2 (اختياري)</label>
         <input type="tel" id="patientPhone2" placeholder="01xxxxxxxxx">
-      </div>
-      <div class="field">
-        <label>نوع الزيارة / الحجز</label>
-        <select id="bookingVisitType" onchange="toggleBookingVisitFields()">
-          <option value="كشف جديد">كشف جديد</option>
-          <option value="متابعة">متابعة</option>
-          <option value="أخرى">أخرى (تحديد بيان)</option>
-        </select>
       </div>
 
       <div class="field" id="bookingSurgeryDateBox" style="display: none;">
@@ -215,7 +221,7 @@
           <th>اسم المريض</th>
           <th>أرقام التليفون</th>
           <th>التاريخ والفرع</th>
-          <th>نوع الزيارة / تاريخ العملية</th>
+          <th>نوع الزيارة / الكود</th>
           <th>مبلغ التحصيل</th>
           <th>حالة الحضور</th>
           <th>الإجراءات والعمليات</th>
@@ -232,9 +238,9 @@
     <div class="card-title">🔍 البحث الشامل والأرشيف (البحث في جميع العيادات والتواريخ السابقة)</div>
     <div class="grid">
       <div class="field" style="grid-column: span 2;">
-        <label>ابحث باسم المريض أو رقم التليفون لاستدعاء سجل الكشوفات والملاحظات والروشتات وتعديلها:</label>
+        <label>ابحث باسم المريض أو رقم التليفون أو الكود لاستدعاء سجل الكشوفات والملاحظات والروشتات وتعديلها:</label>
         <div style="display: flex; gap: 10px;">
-          <input type="text" id="globalSearchInput" placeholder="اكتب الاسم أو التليفون هنا..." style="flex: 1;">
+          <input type="text" id="globalSearchInput" placeholder="اكتب الاسم، التليفون، أو الكود هنا..." style="flex: 1;">
           <button class="btn btn-secondary" style="width: auto; padding: 10px 20px;" onclick="globalSearchArchive()">بحث في الأرشيف</button>
         </div>
       </div>
@@ -246,6 +252,7 @@
         <thead>
           <tr>
             <th>اسم المريض</th>
+            <th>كود المريض</th>
             <th>التليفون</th>
             <th>الفرع والتاريخ</th>
             <th>نوع الزيارة</th>
@@ -274,6 +281,18 @@
 
     <div class="grid">
       <div class="field">
+        <label>نوع الزيارة</label>
+        <select id="modalVisitType" onchange="toggleModalFollowUpFields()">
+          <option value="كشف جديد">كشف جديد</option>
+          <option value="متابعة">متابعة (بعد العملية)</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </div>
+      <div class="field" id="modalPatientCodeBox" style="display: none;">
+        <label style="color: var(--primary); font-weight: bold;">🔑 كود المريض (Customer Code):</label>
+        <input type="text" id="modalPatientCode" placeholder="مثال: C-101" onchange="fetchPatientDetailsFromPreOp('modal')">
+      </div>
+      <div class="field">
         <label>اسم المريض</label>
         <input type="text" id="modalPatientName">
       </div>
@@ -284,14 +303,6 @@
       <div class="field">
         <label>رقم التليفون 2</label>
         <input type="tel" id="modalPhone2">
-      </div>
-      <div class="field">
-        <label>نوع الزيارة</label>
-        <select id="modalVisitType" onchange="toggleModalFollowUpFields()">
-          <option value="كشف جديد">كشف جديد</option>
-          <option value="متابعة">متابعة (بعد العملية)</option>
-          <option value="أخرى">أخرى</option>
-        </select>
       </div>
     </div>
 
@@ -313,7 +324,7 @@
     </div>
 
     <!-- Follow Up Specific Fields (Surgery Details & Date) -->
-    <div id="modalFollowUpFields" class="followup-fields">
+    <div id="modalFollowUpFields" class="followup-fields" style="display: none;">
       <div style="font-weight: bold; margin-bottom: 10px; color: var(--success);">🩺 تفاصيل وتاريخ العملية (خاص بالمتابعة):</div>
       <div class="grid" style="margin-bottom: 0;">
         <div class="field">
@@ -333,8 +344,8 @@
 
     <!-- Notes Field -->
     <div class="field" style="margin-top: 14px;">
-      <label>📝 ملاحظات الزيارة / التشخيص والتعليمات:</label>
-      <textarea id="visitNotes" rows="3" placeholder="اكتب الملاحظات الطبية أو حالة المريض هنا..."></textarea>
+      <label style="font-weight: bold; color: var(--primary);">📝 ملاحظات الكشف / تقرير المتابعة بالعيادة (يتم ترحيلها تلقائياً لشيت Post-Op):</label>
+      <textarea id="visitNotes" rows="3" placeholder="اكتب التشخيص، الشكوى، التعليمات الطبية، أو خطة العلاج هنا..."></textarea>
     </div>
 
     <!-- File Attachment -->
@@ -344,7 +355,7 @@
       <img id="paperImgPrev" class="img-preview">
     </div>
 
-    <button class="btn btn-success" style="width: 100%; margin-top: 20px;" onclick="confirmCheckIn()">💾 حفظ وتحديث البيانات أونلاين</button>
+    <button class="btn btn-success" style="width: 100%; margin-top: 20px;" onclick="confirmCheckIn()">💾 حفظ وتأكيد الحضور أونلاين</button>
   </div>
 </div>
 
@@ -392,6 +403,30 @@
         ...item.data
       }));
       filterAppointments();
+    }
+  }
+
+  // 🔄 دالة سحب بيانات المريض تلقائياً من Pre-Op بمجرد كتابة الكود
+  async function fetchPatientDetailsFromPreOp(target) {
+    let codeInputId = (target === 'booking') ? 'bookingPatientCode' : 'modalPatientCode';
+    let code = document.getElementById(codeInputId).value.trim();
+    if (!code) return;
+
+    const { data, error } = await supabaseClient.from('preop_records').select('*');
+    if (!error && data) {
+      let matched = data.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === code.toLowerCase());
+      if (matched && matched.data) {
+        let p = matched.data;
+        if (target === 'booking') {
+          document.getElementById('patientName').value = p.patientName || '';
+          if (p.opDate) document.getElementById('bookingSurgeryDate').value = p.opDate;
+        } else {
+          document.getElementById('modalPatientName').value = p.patientName || '';
+          document.getElementById('modalSurgeryType').value = p.operation || '';
+          document.getElementById('modalHospitalName').value = p.hospital || '';
+          if (p.opDate) document.getElementById('modalSurgeryDate').value = p.opDate;
+        }
+      }
     }
   }
 
@@ -450,6 +485,7 @@
     let type = document.getElementById('bookingVisitType').value;
     document.getElementById('otherTypeBox').style.display = (type === 'أخرى') ? 'flex' : 'none';
     document.getElementById('bookingSurgeryDateBox').style.display = (type === 'متابعة') ? 'flex' : 'none';
+    document.getElementById('bookingPatientCodeBox').style.display = (type === 'متابعة') ? 'flex' : 'none';
   }
 
   function filterAppointments() {
@@ -486,13 +522,16 @@
       }
 
       let visitTypeDisplay = app.visitType;
+      if(app.patientCode) {
+        visitTypeDisplay += `<br><small style="color:var(--primary); font-weight:bold;">كود: ${app.patientCode}</small>`;
+      }
       if(app.visitType === 'متابعة' && app.surgeryDate) {
         visitTypeDisplay += `<br><small style="color:#15803d; font-weight:bold;">العملية: ${app.surgeryDate}</small>`;
       }
 
       let actionBtns = `
         <div class="action-btns">
-          ${app.status === 'pending' ? `<button class="btn btn-success" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✅ حضور ورفع روشتة</button>` : ''}
+          ${app.status === 'pending' ? `<button class="btn btn-success" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✅ حضور وكشف</button>` : ''}
           ${app.paperImg ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` : ''}
           <button class="btn btn-warning" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل الزيارة</button>
           ${app.status !== 'cancelled' ? `<button class="btn btn-danger" style="padding: 5px 10px; font-size:0.8rem;" onclick="cancelAppointment(${app.dbId})">❌ إلغاء</button>` : `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="restoreAppointment(${app.dbId})">🔄 تفعيل</button>`}
@@ -532,12 +571,13 @@
     }
 
     let surgeryDate = (visitSelect === 'متابعة') ? document.getElementById('bookingSurgeryDate').value : '';
+    let patientCode = (visitSelect === 'متابعة') ? document.getElementById('bookingPatientCode').value.trim() : '';
 
     if(!name || !phone1) return alert("برجاء إدخال الاسم ورقم التليفون الرئيسي على الأقل");
 
     if(editDbId > 0) {
       let existingApp = allAppointments.find(a => a.dbId === editDbId);
-      let updatedPayload = { ...existingApp, name, phone1, phone2, clinic, date, visitType, surgeryDate };
+      let updatedPayload = { ...existingApp, name, phone1, phone2, clinic, date, visitType, surgeryDate, patientCode };
       delete updatedPayload.dbId;
 
       const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', editDbId);
@@ -547,7 +587,7 @@
         fetchAppointmentsFromSupabase();
       }
     } else {
-      let payload = { name, phone1, phone2, clinic, date, visitType, surgeryDate, status: "pending", paperImg: "", notes: "", surgeryType: "", hospitalName: "", fee: 0, isFree: false };
+      let payload = { name, phone1, phone2, clinic, date, visitType, surgeryDate, patientCode, status: "pending", paperImg: "", notes: "", surgeryType: "", hospitalName: "", fee: 0, isFree: false };
       const { error } = await supabaseClient.from('appointments').insert([{ data: payload }]);
       if(!error) {
         alert("✅ تم حفظ الحجز أونلاين بنجاح!");
@@ -567,6 +607,7 @@
     document.getElementById('patientPhone1').value = '';
     document.getElementById('patientPhone2').value = '';
     document.getElementById('bookingVisitType').value = 'كشف جديد';
+    document.getElementById('bookingPatientCode').value = '';
     document.getElementById('otherTypeDetail').value = '';
     document.getElementById('bookingSurgeryDate').value = '';
     toggleBookingVisitFields();
@@ -616,6 +657,7 @@
 
     let searchResult = baseList.filter(app => 
       app.name.toLowerCase().includes(query) ||
+      (app.patientCode && app.patientCode.toLowerCase().includes(query)) ||
       app.phone1.includes(query) ||
       (app.phone2 && app.phone2.includes(query))
     );
@@ -629,20 +671,21 @@
     let tbody = document.getElementById('archiveTableBody');
 
     if(!query) {
-      alert("يرجى كتابة اسم المريض أو رقم التليفون للبحث في الأرشيف");
+      alert("يرجى كتابة اسم المريض، رقم التليفون، أو الكود للبحث في الأرشيف");
       box.style.display = 'none';
       return;
     }
 
     let results = allAppointments.filter(app => 
       app.name.toLowerCase().includes(query) ||
+      (app.patientCode && app.patientCode.toLowerCase().includes(query)) ||
       app.phone1.includes(query) ||
       (app.phone2 && app.phone2.includes(query))
     );
 
     tbody.innerHTML = '';
     if(results.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
     } else {
       results.forEach(app => {
         let imgBtn = app.paperImg 
@@ -654,6 +697,7 @@
         tbody.innerHTML += `
           <tr>
             <td><b>${app.name}</b></td>
+            <td><b style="color:var(--primary);">${app.patientCode || '-'}</b></td>
             <td>${app.phone1}</td>
             <td>${app.clinic}<br><small style="color:#64748b;">${app.date}</small></td>
             <td><span class="visit-badge">${app.visitType}</span></td>
@@ -690,6 +734,7 @@
 
     currentUploadedImg = app.paperImg || "";
     document.getElementById('modalPatientName').value = app.name || '';
+    document.getElementById('modalPatientCode').value = app.patientCode || '';
     document.getElementById('modalPhone1').value = app.phone1 || '';
     document.getElementById('modalPhone2').value = app.phone2 || '';
     
@@ -730,7 +775,9 @@
 
   function toggleModalFollowUpFields() {
     let type = document.getElementById('modalVisitType').value;
-    document.getElementById('modalFollowUpFields').style.display = (type === 'متابعة') ? 'block' : 'none';
+    let isFollowUp = (type === 'متابعة');
+    document.getElementById('modalFollowUpFields').style.display = isFollowUp ? 'block' : 'none';
+    document.getElementById('modalPatientCodeBox').style.display = isFollowUp ? 'block' : 'none';
   }
 
   function previewImg(input, targetId) {
@@ -745,6 +792,25 @@
     }
   }
 
+  // 🔄 دالة ترحيل الحضور والملاحظات لسيستم Post-Op تلقائياً
+  async function syncFollowUpToPostOp(patientCode, patientName, clinicName, visitDate, notes) {
+    if (!patientCode) return;
+
+    let payload = {
+      code: patientCode,
+      name: patientName,
+      docSurg: 'د. بهاء شكري',
+      docNutrition: '',
+      followUpDate: visitDate,
+      attendanceStatus: 'حضر بالعيادة',
+      visitMilestone: `زيارة عيادة (${clinicName})`,
+      doctorNotes: `[ملاحظات كشف العيادة - فرع ${clinicName}]: ${notes || 'تم الحضور للكشف الدوري'}`,
+      recordedBy: 'نظام حجوزات العيادة'
+    };
+
+    await supabaseClient.from('postop_records').insert([{ data: payload }]);
+  }
+
   async function confirmCheckIn() {
     let app = allAppointments.find(a => a.dbId === currentCheckInId);
     if(app) {
@@ -753,6 +819,7 @@
 
       updatedPayload.status = 'done';
       updatedPayload.name = document.getElementById('modalPatientName').value.trim();
+      updatedPayload.patientCode = document.getElementById('modalPatientCode').value.trim();
       updatedPayload.phone1 = document.getElementById('modalPhone1').value.trim();
       updatedPayload.phone2 = document.getElementById('modalPhone2').value.trim();
       updatedPayload.visitType = document.getElementById('modalVisitType').value;
@@ -769,11 +836,15 @@
       const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
       
       if(!error) {
-        alert("✅ تم تحديث بيانات الزيارة بنجاح أونلاين!");
+        // 🔄 الترحيل التلقائي لسيستم الـ Post-Op إذا كانت الحالة متابعة ومسجل لها كود
+        if (updatedPayload.visitType === 'متابعة' && updatedPayload.patientCode) {
+          await syncFollowUpToPostOp(updatedPayload.patientCode, updatedPayload.name, updatedPayload.clinic, updatedPayload.date, updatedPayload.notes);
+        }
+
+        alert("✅ تم تأكيد حضور الكشف بنجاح وترحيل الملاحظات للتقرير الطبي!");
         closeModal();
         fetchAppointmentsFromSupabase();
         
-        // إعادة تحديث الأرشيف لو شغالين بحث
         if(document.getElementById('globalSearchInput').value.trim()) {
           globalSearchArchive();
         }
