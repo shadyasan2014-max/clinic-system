@@ -71,6 +71,7 @@
   .btn-warning { background: var(--accent-gold); color: white; }
   .btn-danger { background: var(--danger); color: white; }
   .btn-secondary { background: #475569; }
+  .btn-info { background: #0284c7; color: white; }
 
   /* Excel Table Styling */
   .table-responsive { overflow-x: auto; max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; }
@@ -88,6 +89,10 @@
   /* Modal Styles */
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); justify-content: center; align-items: center; padding: 15px; z-index: 1000; }
   .modal-content { background: white; padding: 22px; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
+
+  /* Gallery Previews */
+  .gallery-preview { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .gallery-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
 </style>
 </head>
 <body>
@@ -189,7 +194,16 @@
       </div>
     </div>
 
-    <button class="btn btn-success" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 0.95rem;" onclick="savePreOpRecord()">💾 حفظ بيانات الحالة وإدراجها بالشيت</button>
+    <!-- 📷 Upload Labs & Scans Section -->
+    <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 12px; border-radius: 8px; margin-top: 10px; margin-bottom: 12px;">
+      <div class="field">
+        <label style="font-weight: bold; color: #166534;">📷 رفع صور التحاليل والأشعة والتقارير الطبية (يمكنك اختيار أكثر من صورة):</label>
+        <input type="file" id="labFilesInput" accept="image/*" multiple onchange="handleLabImages(this, 'formLabPreview')" style="background: white;">
+      </div>
+      <div id="formLabPreview" class="gallery-preview"></div>
+    </div>
+
+    <button class="btn btn-success" style="width: 100%; margin-top: 5px; padding: 10px; font-size: 0.95rem;" onclick="savePreOpRecord()">💾 حفظ بيانات الحالة وإدراجها بالشيت</button>
   </div>
 
   <!-- 🔍 فلترة الشيت الطبي الكامل بالتاريخ -->
@@ -232,7 +246,7 @@
             <th>M.H.</th>
             <th>Smoking</th>
             <th>S.H.</th>
-            <th>Labs</th>
+            <th>Labs & الأشعة</th>
             <th>Operation</th>
             <th>Pre Op prep</th>
             <th>Intra operative</th>
@@ -331,7 +345,7 @@
               <th>M.H.</th>
               <th>Smoking</th>
               <th>S.H.</th>
-              <th>Labs</th>
+              <th>Labs & الأشعة</th>
               <th>Operation</th>
               <th>Pre Op prep</th>
               <th>Intra operative</th>
@@ -381,10 +395,30 @@
       <div class="field"><label>Intra operative</label><input type="text" id="mIntraOp"></div>
     </div>
 
+    <!-- Edit Modal Labs & Scans Upload -->
+    <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 12px; border-radius: 8px; margin-top: 10px;">
+      <div class="field">
+        <label style="font-weight: bold; color: #166534;">📷 صور التحاليل والأشعة للحالة:</label>
+        <input type="file" id="mLabFilesInput" accept="image/*" multiple onchange="handleLabImages(this, 'modalLabPreview')" style="background: white;">
+      </div>
+      <div id="modalLabPreview" class="gallery-preview"></div>
+    </div>
+
     <div style="display: flex; gap: 10px; margin-top: 14px;">
       <button class="btn btn-success" style="flex: 1;" onclick="saveModalChanges()">💾 حفظ التعديلات أونلاين</button>
       <button class="btn btn-danger" style="width: auto;" onclick="deletePreOpRecordFromModal()">🗑️ حذف الحالة</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal Image Viewer (معاينة وتكبير صور الأشعة والتحاليل) -->
+<div id="imageViewerModal" class="modal">
+  <div class="modal-content" style="max-width: 750px; text-align: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+      <h3 id="viewerTitle" style="color: var(--primary);">📂 مستندات وصور التحاليل والأشعة</h3>
+      <button onclick="closeImageViewer()" style="background: var(--danger); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <div id="viewerGallery" style="display: flex; flex-direction: column; gap: 15px; max-height: 70vh; overflow-y: auto; padding: 10px;"></div>
   </div>
 </div>
 
@@ -399,6 +433,8 @@
 
   let allPreOpRecords = [];
   let currentActiveDbId = null;
+  let currentFormLabImages = [];
+  let currentModalLabImages = [];
 
   window.onload = function() {
     fetchPreOpFromSupabase();
@@ -422,6 +458,38 @@
     } else {
       document.getElementById('mBmi').innerText = "0.0";
     }
+  }
+
+  // 📷 معالجة وتحويل صور التحاليل والأشعة إلى Base64 مع المعاينة
+  function handleLabImages(input, previewContainerId) {
+    let container = document.getElementById(previewContainerId);
+    if (input.files) {
+      let isForm = (previewContainerId === 'formLabPreview');
+      if (isForm) currentFormLabImages = [];
+      else currentModalLabImages = [];
+
+      Array.from(input.files).forEach(file => {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          let base64 = e.target.result;
+          if (isForm) currentFormLabImages.push(base64);
+          else currentModalLabImages.push(base64);
+          renderLabPreviews(isForm ? currentFormLabImages : currentModalLabImages, previewContainerId);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  function renderLabPreviews(imagesArray, containerId) {
+    let container = document.getElementById(containerId);
+    container.innerHTML = '';
+    imagesArray.forEach((imgSrc) => {
+      let img = document.createElement('img');
+      img.src = imgSrc;
+      img.onclick = () => window.open(imgSrc, '_blank');
+      container.appendChild(img);
+    });
   }
 
   async function fetchPreOpFromSupabase() {
@@ -546,6 +614,11 @@
     }
 
     list.forEach((item) => {
+      let labBtn = '';
+      if (item.labImages && item.labImages.length > 0) {
+        labBtn = `<br><button class="btn btn-info" style="padding:2px 6px; font-size:0.7rem; margin-top:3px;" onclick="viewPatientLabImages(${item.dbId})">📂 الأشعة (${item.labImages.length})</button>`;
+      }
+
       tbody.innerHTML += `
         <tr>
           <td>${item.opDate || '-'}</td>
@@ -561,7 +634,7 @@
           <td>${item.mh || '-'}</td>
           <td>${item.smoking || '-'}</td>
           <td>${item.sh || '-'}</td>
-          <td>${item.labs || '-'}</td>
+          <td>${item.labs || '-'}${labBtn}</td>
           <td>${item.operation || '-'}</td>
           <td>${item.preOpPrep || '-'}</td>
           <td>${item.intraOp || '-'}</td>
@@ -572,6 +645,32 @@
         </tr>
       `;
     });
+  }
+
+  function viewPatientLabImages(dbId) {
+    let item = allPreOpRecords.find(a => a.dbId === dbId);
+    if (!item || !item.labImages || item.labImages.length === 0) return alert("لا توجد صور أشعة أو تحاليل مرفقة لهذه الحالة");
+
+    document.getElementById('viewerTitle').innerText = `📂 مستندات وأشعة المريض: ${item.patientName}`;
+    let gallery = document.getElementById('viewerGallery');
+    gallery.innerHTML = '';
+
+    item.labImages.forEach((imgSrc, i) => {
+      gallery.innerHTML += `
+        <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; background: #f8fafc;">
+          <p style="margin-bottom:6px; font-weight:bold; color:var(--primary);">مستند #${i+1}</p>
+          <img src="${imgSrc}" style="max-width:100%; max-height:450px; border-radius:6px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+          <br>
+          <a href="${imgSrc}" download="patient_doc_${i+1}.png" class="btn btn-secondary" style="display:inline-block; margin-top:8px; padding:4px 12px; font-size:0.8rem; text-decoration:none;">⬇️ تحميل الصورة</a>
+        </div>
+      `;
+    });
+
+    document.getElementById('imageViewerModal').style.display = 'flex';
+  }
+
+  function closeImageViewer() {
+    document.getElementById('imageViewerModal').style.display = 'none';
   }
 
   function executeGlobalSearch() {
@@ -627,6 +726,7 @@
       operation: document.getElementById('operation').value,
       preOpPrep: document.getElementById('preOpPrep').value,
       intraOp: document.getElementById('intraOp').value,
+      labImages: currentFormLabImages,
       opStatus: 'pending',
       patientCode: '',
       notes: ''
@@ -635,7 +735,7 @@
     const { error } = await supabaseClient.from('preop_records').insert([{ data: payload }]);
 
     if (!error) {
-      alert("✅ تم إدراج الحالة في شيت Pre-Op أونلاين بنجاح!");
+      alert("✅ تم إدراج الحالة وصور الأشعة في شيت Pre-Op أونلاين بنجاح!");
       clearForm();
       fetchPreOpFromSupabase();
     }
@@ -684,6 +784,9 @@
     document.getElementById('operation').value = '';
     document.getElementById('preOpPrep').value = '';
     document.getElementById('intraOp').value = '';
+    document.getElementById('labFilesInput').value = '';
+    document.getElementById('formLabPreview').innerHTML = '';
+    currentFormLabImages = [];
   }
 
   function openEditModal(dbId) {
@@ -708,6 +811,10 @@
     document.getElementById('mOperation').value = item.operation || '';
     document.getElementById('mPrePrep').value = item.preOpPrep || '';
     document.getElementById('mIntraOp').value = item.intraOp || '';
+
+    currentModalLabImages = item.labImages || [];
+    renderLabPreviews(currentModalLabImages, 'modalLabPreview');
+    document.getElementById('mLabFilesInput').value = '';
 
     document.getElementById('editModal').style.display = 'flex';
   }
@@ -737,14 +844,15 @@
         labs: document.getElementById('mLabs').value,
         operation: document.getElementById('mOperation').value,
         preOpPrep: document.getElementById('mPrePrep').value,
-        intraOp: document.getElementById('mIntraOp').value
+        intraOp: document.getElementById('mIntraOp').value,
+        labImages: currentModalLabImages
       };
       delete updatedPayload.dbId;
 
       const { error } = await supabaseClient.from('preop_records').update({ data: updatedPayload }).eq('id', currentActiveDbId);
 
       if (!error) {
-        alert("✅ تم تحديث بيانات الحالة بالشيت أونلاين بنجاح!");
+        alert("✅ تم تحديث بيانات الحالة والمرفقات بالشيت أونلاين بنجاح!");
         closeModal();
         fetchPreOpFromSupabase();
       }
