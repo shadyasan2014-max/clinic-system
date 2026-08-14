@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام ما بعد العملية (Post Operative) - د. بهاء شكري</title>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #0f4c5c;
+    --primary-hover: #0a3641;
+    --accent-gold: #d97706;
+    --accent-lime: #84cc16;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --border: #cbd5e1;
+    --success: #16a34a;
+    --warning: #ca8a04;
+    --danger: #dc2626;
+  }
+  
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+  body { background-color: var(--bg); color: var(--text); padding: 15px; line-height: 1.4; }
+  .container { max-width: 100%; margin: 0 auto; }
+  
+  header { 
+    background: var(--primary); 
+    color: white; 
+    padding: 16px 20px; 
+    border-radius: 12px; 
+    margin-bottom: 20px; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); 
+    border-bottom: 3px solid var(--accent-lime);
+  }
+  .brand-logo { display: flex; align-items: center; gap: 14px; }
+  .logo-box {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-lime);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .logo-box img { width: 100%; height: 100%; object-fit: cover; }
+  .header-text h1 { font-size: 1.25rem; margin-bottom: 2px; color: #ffffff; }
+  .header-text p { font-size: 0.82rem; color: var(--accent-lime); font-weight: 500; }
+  
+  .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.04); }
+  .card-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); margin-bottom: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+  
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.82rem; font-weight: 600; color: #334155; }
+  .field input, .field select, .field textarea { padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem; outline: none; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); }
+  
+  .stat-box { background: #ecfdf5; border: 1px solid #a7f3d0; padding: 6px 10px; border-radius: 6px; text-align: center; }
+  .stat-val { font-size: 1.1rem; font-weight: bold; color: #047857; }
+
+  .btn { background: var(--primary); color: white; border: none; padding: 9px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+  .btn:hover { background: var(--primary-hover); }
+  .btn-success { background: var(--success); }
+  .btn-warning { background: var(--accent-gold); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-secondary { background: #475569; }
+  .btn-info { background: #0284c7; color: white; }
+
+  /* Table Styling */
+  .table-responsive { overflow-x: auto; max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; }
+  table.excel-table { width: 100%; border-collapse: collapse; text-align: center; min-width: 1500px; font-size: 0.85rem; }
+  table.excel-table th, table.excel-table td { border: 1px solid #cbd5e1; padding: 8px 6px; white-space: nowrap; }
+  table.excel-table th { background-color: #0f4c5c; color: white; font-weight: bold; position: sticky; top: 0; }
+  table.excel-table tr:nth-child(even) { background-color: #f8fafc; }
+  table.excel-table tr:hover { background-color: #f1f5f9; }
+
+  /* Modal Styles */
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); justify-content: center; align-items: center; padding: 15px; z-index: 1000; }
+  .modal-content { background: white; padding: 22px; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
+
+  .gallery-preview { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .gallery-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="brand-logo">
+      <div class="logo-box">
+        <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
+      </div>
+      <div class="header-text">
+        <h1>د. بهاء شكري - نظام متابعة ما بعد العملية (Post Operative)</h1>
+        <p>سجل المتابعات الإكلينيكية، التغذية العلاجية، وحضور العيادة</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Entry Form Card -->
+  <div class="card">
+    <div class="card-title">📝 تسجيل متابعة جديدة ما بعد العملية (Post-Op Follow-up)</div>
+
+    <!-- Doctors in Charge -->
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 8px; margin-bottom: 14px;">
+      <h4 style="color: #166534; margin-bottom: 8px;">👨‍⚕️ الأطباء المشرفين على المتابعة:</h4>
+      <div class="grid" style="margin-bottom: 0;">
+        <div class="field">
+          <label>الدكتور المتابع (جراحة):</label>
+          <input type="text" id="docSurg" placeholder="د. بهاء شكري" value="د. بهاء شكري">
+        </div>
+        <div class="field">
+          <label>الدكتور المتابع (تغذية علاجية):</label>
+          <input type="text" id="docNutrition" placeholder="اسم دكتور التغذية...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Patient Identifier & Basic Info -->
+    <div class="grid">
+      <div class="field">
+        <label>كود المريض (Customer Code):</label>
+        <input type="text" id="pCode" placeholder="اكتب الكود (مثال: C-101)..." onchange="fetchPatientDetailsByCode()" required style="border: 2px solid var(--primary); font-weight: bold;">
+      </div>
+      <div class="field">
+        <label>اسم المريض (Patient Name):</label>
+        <input type="text" id="pName" placeholder="سيتم سحب الاسم تلقائياً..." required>
+      </div>
+      <div class="field">
+        <label>نوع العملية الجراحية:</label>
+        <input type="text" id="pOperation" placeholder="تكميم، تحويل مسار...">
+      </div>
+      <div class="field">
+        <label>تاريخ إجراء العملية:</label>
+        <input type="date" id="pOpDate">
+      </div>
+    </div>
+
+    <!-- Visit & Clinic Attendance -->
+    <div class="grid">
+      <div class="field">
+        <label>تاريخ المتابعة الحالية:</label>
+        <input type="date" id="followUpDate">
+      </div>
+      <div class="field">
+        <label>تسجيل حضور العيادة:</label>
+        <select id="attendanceStatus" style="font-weight: bold;">
+          <option value="حضر بالعيادة" selected>🏢 حضر بالعيادة</option>
+          <option value="استشارة أونلاين">💻 استشارة أونلاين</option>
+          <option value="متابعة هاتفية">📞 متابعة هاتفية</option>
+          <option value="لم يحضر (غياب)">❌ لم يحضر (تغيب عن الموعد)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>توقيت / مرحلة الزيارة:</label>
+        <select id="visitMilestone">
+          <option value="أسبوع بعد العملية">أسبوع بعد العملية</option>
+          <option value="أسبوعين بعد العملية">أسبوعين بعد العملية</option>
+          <option value="شهر بعد العملية">شهر بعد العملية</option>
+          <option value="3 شهور بعد العملية">3 شهور بعد العملية</option>
+          <option value="6 شهور بعد العملية">6 شهور بعد العملية</option>
+          <option value="سنة بعد العملية">سنة بعد العملية</option>
+          <option value="زيارة طارئة / غير مجدولة">زيارة طارئة / غير مجدولة</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>مرحلة النظام الغذائي الحالية:</label>
+        <select id="dietStage">
+          <option value="مرحلة السوائل الصافية">مرحلة السوائل الصافية</option>
+          <option value="مرحلة السوائل الكاملة">مرحلة السوائل الكاملة</option>
+          <option value="مرحلة الأكل المهروس (Pureed)">مرحلة الأكل المهروس (Pureed)</option>
+          <option value="مرحلة الأكل اللين (Soft Food)">مرحلة الأكل اللين (Soft Food)</option>
+          <option value="الأكل الطبيعي الصحي المتوازن">الأكل الطبيعي الصحي المتوازن</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Vitals & Weight Loss Tracking -->
+    <div class="grid">
+      <div class="field">
+        <label>الوزن الأساسي قبل العملية (كجم):</label>
+        <input type="number" id="preOpWeight" placeholder="الوزن قبل العملية" oninput="calculatePostOpBMI()">
+      </div>
+      <div class="field">
+        <label>الطول (سم):</label>
+        <input type="number" id="pHeight" placeholder="165" oninput="calculatePostOpBMI()">
+      </div>
+      <div class="field">
+        <label>الوزن الحالي في الزيارة (كجم):</label>
+        <input type="number" id="currentWeight" placeholder="الوزن اليوم..." oninput="calculatePostOpBMI()">
+      </div>
+      <div class="field">
+        <label>BMI الحالي:</label>
+        <div class="stat-box"><span class="stat-val" id="currentBmi">0.0</span></div>
+      </div>
+      <div class="field">
+        <label>إجمالي الوزن المفقود (EWL):</label>
+        <div class="stat-box" style="background:#fef3c7; border-color:#fde68a;"><span class="stat-val" id="weightLostVal" style="color:#b45309;">0 كجم</span></div>
+      </div>
+    </div>
+
+    <!-- Clinical Details -->
+    <div class="grid">
+      <div class="field">
+        <label>الضغط والنبض والسكر:</label>
+        <input type="text" id="vitals" placeholder="BP: 120/80, Pulse: 75...">
+      </div>
+      <div class="field">
+        <label>الشكاوى والأعراض (إن وجدت):</label>
+        <input type="text" id="complaints" placeholder="غثيان، حموضة، إمساك، دوخة...">
+      </div>
+      <div class="field">
+        <label>الالتزام بالفيتامينات والبروتين والسوائل:</label>
+        <input type="text" id="supplementAdherence" placeholder="ملتزم بالفيتامينات وشرب 2 لتر مياه...">
+      </div>
+      <div class="field">
+        <label>فحوصات وتحاليل المتابعة:</label>
+        <input type="text" id="followUpLabs" placeholder="CBC, Ferritin, Vit D, B12...">
+      </div>
+    </div>
+
+    <!-- Notes Textarea -->
+    <div class="field" style="margin-bottom: 12px;">
+      <label style="font-weight: bold; color: var(--primary);">📋 ملاحظات الأطباء، تقرير المتابعة، والتوصيات القادمة:</label>
+      <textarea id="doctorNotes" rows="3" placeholder="اكتب هنا التوصيات الطبية والغذائية وتاريخ المتابعة القادمة..."></textarea>
+    </div>
+
+    <!-- Upload Scans & Labs -->
+    <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+      <div class="field">
+        <label style="font-weight: bold; color: #166534;">📷 رفع صور التحاليل والأشعة الجديدة الخاصة بالمتابعة:</label>
+        <input type="file" id="postLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'formPostLabPreview')" style="background: white;">
+      </div>
+      <div id="formPostLabPreview" class="gallery-preview"></div>
+    </div>
+
+    <button class="btn btn-success" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="savePostOpRecord()">💾 حفظ سجل المتابعة في شيت Post Operative</button>
+  </div>
+
+  <!-- 📊 Post-Op Records Sheet Table -->
+  <div class="card">
+    <div class="card-title">
+      <span>📊 شيت متابعات ما بعد العملية (Post-Op Sheet)</span>
+      <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;" onclick="fetchPostOpFromSupabase()">🔄 تحديث البيانات</button>
+    </div>
+
+    <!-- Filters -->
+    <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #cbd5e1;">
+      <div class="grid" style="margin-bottom: 0;">
+        <div class="field">
+          <label>بحث بكود أو اسم المريض:</label>
+          <input type="text" id="filterSearch" placeholder="اكتب للبحث..." onkeyup="filterPostOpTable()">
+        </div>
+        <div class="field">
+          <label>تصفية بتاريخ المتابعة:</label>
+          <input type="date" id="filterDate" onchange="filterPostOpTable()">
+        </div>
+        <div class="field" style="justify-content: flex-end;">
+          <button class="btn btn-secondary" style="font-size: 0.85rem; padding: 8px 12px;" onclick="resetPostOpFilter()">عرض كافة المتابعات</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="excel-table">
+        <thead>
+          <tr>
+            <th>تاريخ المتابعة</th>
+            <th>كود المريض</th>
+            <th>اسم المريض</th>
+            <th>د. الجراحة</th>
+            <th>د. التغذية</th>
+            <th>حضور العيادة</th>
+            <th>المرحلة</th>
+            <th>الوزن الحالي</th>
+            <th>BMI</th>
+            <th>الوزن المفقود</th>
+            <th>نظام التغذية</th>
+            <th>الفحوصات والأشعة</th>
+            <th>الملاحظات</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="postOpTableBody">
+          <tr><td colspan="14" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Edit Post-Op Record -->
+<div id="editPostModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+      <h3 style="color: var(--primary);">✏️ تعديل بيانات المتابعة (Post-Op)</h3>
+      <button onclick="closeEditModal()" style="background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+
+    <div class="grid">
+      <div class="field"><label>د. الجراحة</label><input type="text" id="mDocSurg"></div>
+      <div class="field"><label>د. التغذية</label><input type="text" id="mDocNutr"></div>
+      <div class="field"><label>كود المريض</label><input type="text" id="mCode" readonly style="background:#e2e8f0;"></div>
+      <div class="field"><label>اسم المريض</label><input type="text" id="mName"></div>
+      <div class="field"><label>تاريخ المتابعة</label><input type="date" id="mFollowUpDate"></div>
+      <div class="field">
+        <label>حضور العيادة</label>
+        <select id="mAttendance">
+          <option value="حضر بالعيادة">🏢 حضر بالعيادة</option>
+          <option value="استشارة أونلاين">💻 استشارة أونلاين</option>
+          <option value="متابعة هاتفية">📞 متابعة هاتفية</option>
+          <option value="لم يحضر (غياب)">❌ لم يحضر (تغيب عن الموعد)</option>
+        </select>
+      </div>
+      <div class="field"><label>الوزن الحالي</label><input type="number" id="mCurWeight" oninput="calculateModalPostBMI()"></div>
+      <div class="field"><label>BMI</label><input type="text" id="mBmi" readonly style="background:#e2e8f0;"></div>
+    </div>
+
+    <div class="field" style="margin-bottom: 10px;">
+      <label>الملاحظات والتوصيات:</label>
+      <textarea id="mNotes" rows="3"></textarea>
+    </div>
+
+    <!-- Modal Photos -->
+    <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 10px; border-radius: 8px; margin-bottom: 12px;">
+      <label style="font-weight:bold; color:#166534;">📷 صور الأشعة والتحاليل للمتابعة:</label>
+      <input type="file" id="mPostLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'modalPostLabPreview')" style="background:white; margin-top:4px;">
+      <div id="modalPostLabPreview" class="gallery-preview"></div>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-success" style="flex: 1;" onclick="saveModalPostChanges()">💾 حفظ التعديلات أونلاين</button>
+      <button class="btn btn-danger" style="width: auto;" onclick="deleteFromModal()">🗑️ حذف المتابعة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Image Viewer -->
+<div id="imageViewerModal" class="modal">
+  <div class="modal-content" style="max-width: 700px; text-align: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+      <h3 id="viewerTitle" style="color: var(--primary);">📂 مستندات وفحوصات المتابعة</h3>
+      <button onclick="closeImageViewer()" style="background: var(--danger); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+    <div id="viewerGallery" style="display: flex; flex-direction: column; gap: 15px; max-height: 70vh; overflow-y: auto; padding: 10px;"></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  document.getElementById('followUpDate').valueAsDate = new Date();
+
+  let allPostOpRecords = [];
+  let currentActiveDbId = null;
+  let currentFormImages = [];
+  let currentModalImages = [];
+
+  window.onload = function() {
+    fetchPostOpFromSupabase();
+  };
+
+  // 🔄 سحب بيانات الحالة تلقائياً من Pre-Op بمجرد كتابة الكود
+  async function fetchPatientDetailsByCode() {
+    let code = document.getElementById('pCode').value.trim();
+    if (!code) return;
+
+    const { data, error } = await supabaseClient.from('preop_records').select('*');
+    if (!error && data) {
+      let matched = data.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === code.toLowerCase());
+      if (matched && matched.data) {
+        let p = matched.data;
+        document.getElementById('pName').value = p.patientName || '';
+        document.getElementById('pOperation').value = p.operation || '';
+        if (p.opDate) document.getElementById('pOpDate').value = p.opDate;
+        if (p.weight) document.getElementById('preOpWeight').value = p.weight;
+        if (p.height) document.getElementById('pHeight').value = p.height;
+        calculatePostOpBMI();
+      }
+    }
+  }
+
+  function calculatePostOpBMI() {
+    let preWt = parseFloat(document.getElementById('preOpWeight').value) || 0;
+    let curWt = parseFloat(document.getElementById('currentWeight').value) || 0;
+    let ht = parseFloat(document.getElementById('pHeight').value) || 0;
+
+    if (curWt > 0 && ht > 0) {
+      let bmi = (curWt / ((ht / 100) * (ht / 100))).toFixed(1);
+      document.getElementById('currentBmi').innerText = bmi;
+    } else {
+      document.getElementById('currentBmi').innerText = "0.0";
+    }
+
+    if (preWt > 0 && curWt > 0) {
+      let diff = (preWt - curWt).toFixed(1);
+      document.getElementById('weightLostVal').innerText = diff + " كجم";
+    } else {
+      document.getElementById('weightLostVal').innerText = "0 كجم";
+    }
+  }
+
+  function calculateModalPostBMI() {
+    let curWt = parseFloat(document.getElementById('mCurWeight').value) || 0;
+    let item = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
+    let ht = item && item.height ? parseFloat(item.height) : 0;
+
+    if (curWt > 0 && ht > 0) {
+      document.getElementById('mBmi').value = (curWt / ((ht / 100) * (ht / 100))).toFixed(1);
+    }
+  }
+
+  function handlePostLabImages(input, previewContainerId) {
+    let container = document.getElementById(previewContainerId);
+    if (input.files) {
+      let isForm = (previewContainerId === 'formPostLabPreview');
+      if (isForm) currentFormImages = [];
+      else currentModalImages = [];
+
+      Array.from(input.files).forEach(file => {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          let base64 = e.target.result;
+          if (isForm) currentFormImages.push(base64);
+          else currentModalImages.push(base64);
+          renderPreviewImages(isForm ? currentFormImages : currentModalImages, previewContainerId);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  function renderPreviewImages(imagesArray, containerId) {
+    let container = document.getElementById(containerId);
+    container.innerHTML = '';
+    imagesArray.forEach((imgSrc) => {
+      let img = document.createElement('img');
+      img.src = imgSrc;
+      img.onclick = () => window.open(imgSrc, '_blank');
+      container.appendChild(img);
+    });
+  }
+
+  async function fetchPostOpFromSupabase() {
+    let tbody = document.getElementById('postOpTableBody');
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:#0e7490; font-weight:bold;">⏳ جاري جلب الشيت أونلاين...</td></tr>';
+
+    const { data, error } = await supabaseClient.from('postop_records').select('*').order('id', { ascending: false });
+
+    if (error) {
+      tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:#dc2626;">⚠️ يرجى التأكد من إضافة جدول postop_records في Supabase.</td></tr>';
+    } else {
+      allPostOpRecords = data.map(item => ({ dbId: item.id, ...item.data }));
+      renderPostOpTable(allPostOpRecords);
+    }
+  }
+
+  function renderPostOpTable(list) {
+    let tbody = document.getElementById('postOpTableBody');
+    tbody.innerHTML = '';
+
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد سجلات متابعة مسجلة</td></tr>';
+      return;
+    }
+
+    list.forEach(item => {
+      let imagesBtn = '';
+      if (item.images && item.images.length > 0) {
+        imagesBtn = `<br><button class="btn btn-info" style="padding:2px 6px; font-size:0.7rem; margin-top:3px;" onclick="viewPostOpImages(${item.dbId})">📂 الصور (${item.images.length})</button>`;
+      }
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.followUpDate || '-'}</td>
+          <td><b>${item.code || '-'}</b></td>
+          <td><b>${item.name || '-'}</b></td>
+          <td>${item.docSurg || '-'}</td>
+          <td>${item.docNutrition || '-'}</td>
+          <td><b style="color:var(--primary);">${item.attendanceStatus || '-'}</b></td>
+          <td>${item.visitMilestone || '-'}</td>
+          <td>${item.currentWeight || '-'} كجم</td>
+          <td><b style="color:#b45309;">${item.currentBmi || '-'}</b></td>
+          <td><span style="color:green; font-weight:bold;">${item.weightLost || '0'} كجم</span></td>
+          <td>${item.dietStage || '-'}</td>
+          <td>${item.followUpLabs || '-'}${imagesBtn}</td>
+          <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;" title="${item.doctorNotes || ''}">${item.doctorNotes || '-'}</td>
+          <td>
+            <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem;" onclick="openEditPostModal(${item.dbId})">✏️ تعديل</button>
+            <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="deletePostOpRecord(${item.dbId})">🗑️ حذف</button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function filterPostOpTable() {
+    let q = document.getElementById('filterSearch').value.trim().toLowerCase();
+    let d = document.getElementById('filterDate').value;
+
+    let filtered = allPostOpRecords.filter(item => {
+      let matchQ = !q || (item.name && item.name.toLowerCase().includes(q)) || (item.code && item.code.toLowerCase().includes(q));
+      let matchD = !d || (item.followUpDate === d);
+      return matchQ && matchD;
+    });
+
+    renderPostOpTable(filtered);
+  }
+
+  function resetPostOpFilter() {
+    document.getElementById('filterSearch').value = '';
+    document.getElementById('filterDate').value = '';
+    renderPostOpTable(allPostOpRecords);
+  }
+
+  async function savePostOpRecord() {
+    let code = document.getElementById('pCode').value.trim();
+    let name = document.getElementById('pName').value.trim();
+    if (!code || !name) return alert("يرجى كتابة كود واسم المريض");
+
+    let payload = {
+      code,
+      name,
+      docSurg: document.getElementById('docSurg').value,
+      docNutrition: document.getElementById('docNutrition').value,
+      operation: document.getElementById('pOperation').value,
+      opDate: document.getElementById('pOpDate').value,
+      followUpDate: document.getElementById('followUpDate').value,
+      attendanceStatus: document.getElementById('attendanceStatus').value,
+      visitMilestone: document.getElementById('visitMilestone').value,
+      dietStage: document.getElementById('dietStage').value,
+      preOpWeight: document.getElementById('preOpWeight').value,
+      height: document.getElementById('pHeight').value,
+      currentWeight: document.getElementById('currentWeight').value,
+      currentBmi: document.getElementById('currentBmi').innerText,
+      weightLost: document.getElementById('weightLostVal').innerText.replace(' كجم', ''),
+      vitals: document.getElementById('vitals').value,
+      complaints: document.getElementById('complaints').value,
+      supplementAdherence: document.getElementById('supplementAdherence').value,
+      followUpLabs: document.getElementById('followUpLabs').value,
+      doctorNotes: document.getElementById('doctorNotes').value,
+      images: currentFormImages
+    };
+
+    const { error } = await supabaseClient.from('postop_records').insert([{ data: payload }]);
+
+    if (!error) {
+      alert("✅ تم حفظ سجل المتابعة في Post Operative أونلاين بنجاح!");
+      clearPostForm();
+      fetchPostOpFromSupabase();
+    } else {
+      alert("⚠️ تعذر الحفظ، يرجى التأكد من إنشاء جدول postop_records.");
+    }
+  }
+
+  function clearPostForm() {
+    document.getElementById('pCode').value = '';
+    document.getElementById('pName').value = '';
+    document.getElementById('pOperation').value = '';
+    document.getElementById('pOpDate').value = '';
+    document.getElementById('preOpWeight').value = '';
+    document.getElementById('pHeight').value = '';
+    document.getElementById('currentWeight').value = '';
+    document.getElementById('currentBmi').innerText = '0.0';
+    document.getElementById('weightLostVal').innerText = '0 كجم';
+    document.getElementById('vitals').value = '';
+    document.getElementById('complaints').value = '';
+    document.getElementById('supplementAdherence').value = '';
+    document.getElementById('followUpLabs').value = '';
+    document.getElementById('doctorNotes').value = '';
+    document.getElementById('postLabFiles').value = '';
+    document.getElementById('formPostLabPreview').innerHTML = '';
+    currentFormImages = [];
+  }
+
+  async function deletePostOpRecord(dbId) {
+    let item = allPostOpRecords.find(a => a.dbId === dbId);
+    if (!item) return;
+
+    let conf = confirm(`⚠️ هل أنت متأكد من حذف سجل متابعة المريض: "${item.name}"؟`);
+    if (conf) {
+      const { error } = await supabaseClient.from('postop_records').delete().eq('id', dbId);
+      if (!error) {
+        alert("✅ تم الحذف بنجاح.");
+        fetchPostOpFromSupabase();
+      }
+    }
+  }
+
+  function openEditPostModal(dbId) {
+    currentActiveDbId = dbId;
+    let item = allPostOpRecords.find(a => a.dbId === dbId);
+    if (!item) return;
+
+    document.getElementById('mDocSurg').value = item.docSurg || '';
+    document.getElementById('mDocNutr').value = item.docNutrition || '';
+    document.getElementById('mCode').value = item.code || '';
+    document.getElementById('mName').value = item.name || '';
+    document.getElementById('mFollowUpDate').value = item.followUpDate || '';
+    document.getElementById('mAttendance').value = item.attendanceStatus || 'حضر بالعيادة';
+    document.getElementById('mCurWeight').value = item.currentWeight || '';
+    document.getElementById('mBmi').value = item.currentBmi || '';
+    document.getElementById('mNotes').value = item.doctorNotes || '';
+
+    currentModalImages = item.images || [];
+    renderPreviewImages(currentModalImages, 'modalPostLabPreview');
+
+    document.getElementById('editPostModal').style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    document.getElementById('editPostModal').style.display = 'none';
+  }
+
+  function deleteFromModal() {
+    if (currentActiveDbId) {
+      closeEditModal();
+      deletePostOpRecord(currentActiveDbId);
+    }
+  }
+
+  async function saveModalPostChanges() {
+    let item = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
+    if (item) {
+      let curWt = parseFloat(document.getElementById('mCurWeight').value) || 0;
+      let preWt = parseFloat(item.preOpWeight) || 0;
+      let weightLost = (preWt > 0 && curWt > 0) ? (preWt - curWt).toFixed(1) : item.weightLost;
+
+      let updatedPayload = {
+        ...item,
+        docSurg: document.getElementById('mDocSurg').value,
+        docNutrition: document.getElementById('mDocNutr').value,
+        name: document.getElementById('mName').value.trim(),
+        followUpDate: document.getElementById('mFollowUpDate').value,
+        attendanceStatus: document.getElementById('mAttendance').value,
+        currentWeight: curWt,
+        currentBmi: document.getElementById('mBmi').value,
+        weightLost: weightLost,
+        doctorNotes: document.getElementById('mNotes').value,
+        images: currentModalImages
+      };
+      delete updatedPayload.dbId;
+
+      const { error } = await supabaseClient.from('postop_records').update({ data: updatedPayload }).eq('id', currentActiveDbId);
+
+      if (!error) {
+        alert("✅ تم تحديث بيانات المتابعة بنجاح!");
+        closeEditModal();
+        fetchPostOpFromSupabase();
+      }
+    }
+  }
+
+  function viewPostOpImages(dbId) {
+    let item = allPostOpRecords.find(a => a.dbId === dbId);
+    if (!item || !item.images || item.images.length === 0) return alert("لا توجد صور مرفقة لهذه الزيارة");
+
+    document.getElementById('viewerTitle').innerText = `📂 مستندات وفحوصات: ${item.name} (${item.followUpDate})`;
+    let gallery = document.getElementById('viewerGallery');
+    gallery.innerHTML = '';
+
+    item.images.forEach((imgSrc, i) => {
+      gallery.innerHTML += `
+        <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; background: #f8fafc;">
+          <p style="margin-bottom:6px; font-weight:bold; color:var(--primary);">مستند فحص #${i+1}</p>
+          <img src="${imgSrc}" style="max-width:100%; max-height:450px; border-radius:6px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+          <br>
+          <a href="${imgSrc}" download="postop_lab_${i+1}.png" class="btn btn-secondary" style="display:inline-block; margin-top:8px; padding:4px 12px; font-size:0.8rem; text-decoration:none;">⬇️ تحميل الصورة</a>
+        </div>
+      `;
+    });
+
+    document.getElementById('imageViewerModal').style.display = 'flex';
+  }
+
+  function closeImageViewer() {
+    document.getElementById('imageViewerModal').style.display = 'none';
+  }
+</script>
+</body>
+</html>
