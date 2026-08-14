@@ -452,7 +452,7 @@
     </div>
 
     <!-- Invoice Summary Box -->
-    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin: 15px 0;">
+    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-15px 0;">
       <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
         <span>المبلغ الصافي للبنود:</span>
         <b id="invSubtotalVal">0 ج.م</b>
@@ -471,7 +471,7 @@
   </div>
 </div>
 
-<!-- Modal Case Report Generator (📄 تقرير الحالة الشامل) -->
+<!-- Modal Case Report Generator (📄 تقرير الحالة الشامل والمفصل) -->
 <div id="reportModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
@@ -484,7 +484,8 @@
         <div class="field">
           <label style="font-weight: bold; color: #0369a1;">نوع التقرير المراد إصداره:</label>
           <select id="repTypeSelect" onchange="handleReportTypeChange()" style="font-weight: bold; padding: 8px;">
-            <option value="medical_only" selected>📋 تقرير طبي وإكلينيكي مفصل فقط</option>
+            <option value="detailed_clinical" selected>📋 تقرير مفصل شامل (Pre-Op + العيادات + متابعات Post-Op)</option>
+            <option value="medical_only">🩺 تقرير إكلينيكي مختصر فقط</option>
             <option value="full_summary">📊 تقرير حالة شامل (طبي + إداري ومالي)</option>
           </select>
         </div>
@@ -497,7 +498,7 @@
 
     <div class="field" style="margin-bottom: 16px;">
       <label style="font-weight: bold; color: var(--primary);">✍️ التقرير الطبي المفصل والتوصيات والإرشادات للحالة:</label>
-      <textarea id="repMedicalText" rows="6" placeholder="اكتب هنا التقرير الطبي المفصل، ملاحظات ما بعد العملية، إرشادات التغذية والمتابعة..." style="font-size: 0.95rem; line-height: 1.5;"></textarea>
+      <textarea id="repMedicalText" rows="5" placeholder="اكتب هنا التقرير الطبي المفصل، ملاحظات ما بعد العملية، إرشادات التغذية والمتابعة..." style="font-size: 0.95rem; line-height: 1.5;"></textarea>
     </div>
 
     <button class="btn btn-report" onclick="printPatientCaseReport()">🖨️ معاينة وتوليد التقرير للطباعة</button>
@@ -586,7 +587,6 @@
     let savedUser = localStorage.getItem('activeSystemUser');
     if (savedUser) {
       currentUser = JSON.parse(savedUser);
-      // فحص الصلاحية للحساب المسجل مسبقاً
       if (currentUser.role === 'admin' || currentUser.role === 'accountant') {
         initUserSession();
       } else {
@@ -607,7 +607,6 @@
     if (data && data.length > 0) {
       let user = data[0];
 
-      // 🔒 فحص الصلاحية: الدخول للحسابات مسموح فقط للآدمن وموظف الحسابات
       if (user.role !== 'admin' && user.role !== 'accountant') {
         alert('⛔ عذراً: هذا الحساب مخصص للأطباء وغير مصرح له بفتح نظام الحسابات والماليات.');
         return;
@@ -628,7 +627,6 @@
     document.getElementById('mainContainer').style.display = 'block';
     document.getElementById('userBadge').innerText = `👤 المستخدم: ${currentUser.full_name}`;
     
-    // إظهار أزرار الإدارة وسجل الحركة للآدمن فقط
     if (currentUser.role === 'admin') {
       document.getElementById('manageUsersBtn').style.display = 'inline-block';
       document.getElementById('auditLogsBtn').style.display = 'inline-block';
@@ -709,7 +707,6 @@
     }
   }
 
-  // 🔄 دالة البحث والسحب المباشر لبيانات المريض من شيت الـ Pre-Op بمجرد كتابة الكود
   async function fetchPatientNameFromPreOp() {
     let codeInput = document.getElementById('custCode').value.trim();
     if (!codeInput) return;
@@ -1196,27 +1193,124 @@
     let repType = document.getElementById('repTypeSelect').value;
     let toggleBox = document.getElementById('repFinancialToggleBox');
     
-    if (repType === 'medical_only') {
-      toggleBox.style.display = 'none';
+    if (repType === 'medical_only' || repType === 'detailed_clinical') {
+      toggleBox.style.display = 'flex';
     } else {
       toggleBox.style.display = 'flex';
     }
   }
 
+  /* 📄 دالة طباعة التقرير الشامل والمفصل مع سحب حضور العيادات ومتابعات Post-Op */
   async function printPatientCaseReport() {
     let c = customersList.find(item => item.dbId === currentActiveDbId);
     if(!c) return;
 
     let repType = document.getElementById('repTypeSelect').value;
-    let showFinancials = document.getElementById('repShowFinancials').checked && (repType === 'full_summary');
+    let showFinancials = document.getElementById('repShowFinancials').checked;
     let medicalNotes = document.getElementById('repMedicalText').value.trim();
 
+    // 1. جلب بيانات Pre-Op الأساسية
     let preOpInfo = { age: '-', weight: '-', height: '-', bmi: '-', mh: '-', labs: '-' };
-    const { data } = await supabaseClient.from('preop_records').select('*');
-    if (data) {
-      let matched = data.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === c.code.toLowerCase());
+    const { data: preOpData } = await supabaseClient.from('preop_records').select('*');
+    if (preOpData) {
+      let matched = preOpData.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === c.code.toLowerCase());
       if (matched && matched.data) {
         preOpInfo = matched.data;
+      }
+    }
+
+    // 2. جلب سجل حضور العيادات من جدول appointments
+    let clinicVisitsHTML = '';
+    const { data: appData } = await supabaseClient.from('appointments').select('*');
+    if (appData) {
+      let matchedApps = appData.filter(item => item.data && (
+        (item.data.patientCode && item.data.patientCode.trim().toLowerCase() === c.code.toLowerCase()) ||
+        (item.data.name && item.data.name.trim().toLowerCase() === c.name.trim().toLowerCase())
+      ));
+
+      if (matchedApps.length > 0) {
+        let appRows = '';
+        matchedApps.forEach((a, i) => {
+          let app = a.data;
+          let statusText = (app.status === 'done') ? '✅ تم الحضور' : ((app.status === 'cancelled') ? '❌ ملغى' : '⏳ حجز معلق');
+          appRows += `
+            <tr>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${i+1}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${app.date || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${app.clinic || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${app.visitType || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${statusText}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${app.notes || '-'}</td>
+            </tr>
+          `;
+        });
+
+        clinicVisitsHTML = `
+          <h4 style="margin-top:14px; margin-bottom:6px; background:#f0f9ff; padding:6px; border-radius:4px; color:#0369a1;">🏥 سجل حضور وزيارات العيادات الخارجية (Clinic Visits):</h4>
+          <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.88rem;">
+            <thead>
+              <tr style="background:#e0f2fe;">
+                <th style="border:1px solid #cbd5e1; padding:6px;">#</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">تاريخ الزيارة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">الفرع</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">نوع الزيارة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">الحالة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">ملاحظات العيادة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${appRows}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    // 3. جلب سجل متابعات ما بعد العملية من جدول postop_records
+    let postOpVisitsHTML = '';
+    const { data: postData } = await supabaseClient.from('postop_records').select('*');
+    if (postData) {
+      let matchedPost = postData.filter(item => item.data && (
+        (item.data.code && item.data.code.trim().toLowerCase() === c.code.toLowerCase()) ||
+        (item.data.name && item.data.name.trim().toLowerCase() === c.name.trim().toLowerCase())
+      ));
+
+      if (matchedPost.length > 0) {
+        let postRows = '';
+        matchedPost.forEach((p, i) => {
+          let post = p.data;
+          postRows += `
+            <tr>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${i+1}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${post.followUpDate || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${post.visitMilestone || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${post.currentWeight || '-'} كجم (BMI: ${post.currentBmi || '-'})</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center; color:green; font-weight:bold;">${post.weightLost || '0'} كجم</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${post.dietStage || '-'}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; font-size:0.82rem;">${post.doctorNotes || '-'}</td>
+            </tr>
+          `;
+        });
+
+        postOpVisitsHTML = `
+          <h4 style="margin-top:14px; margin-bottom:6px; background:#f0fdf4; padding:6px; border-radius:4px; color:#166534;">📊 سجل ومتابعات ما بعد العملية ومعدل النزول (Post-Op Follow-ups):</h4>
+          <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.88rem;">
+            <thead>
+              <tr style="background:#dcfce7;">
+                <th style="border:1px solid #cbd5e1; padding:6px;">#</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">تاريخ المتابعة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">مرحلة الزيارة</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">الوزن و BMI</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">الوزن المفقود</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">النظام الغذائي</th>
+                <th style="border:1px solid #cbd5e1; padding:6px;">توصيات وملاحظات الأطباء</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${postRows}
+            </tbody>
+          </table>
+        `;
       }
     }
 
@@ -1224,16 +1318,18 @@
     let remaining = c.total - totalPaid;
     let payText = c.payType === 'cash' ? 'كاش بالكامل' : (c.payType === 'company' ? `قسط شركة (${c.company})` : 'قسط مباشر معنا');
 
-    let reportTitle = (repType === 'medical_only') ? 'تقرير طبي وإكلينيكي مفصل' : 'تقرير تقييم حالة شامل (طبي وإداري)';
+    let reportTitle = 'تقرير تقييم ومتابعة حالة المريض الشامل والمفصل';
+    if (repType === 'medical_only') reportTitle = 'تقرير طبي وإكلينيكي مختصر';
+    if (repType === 'full_summary') reportTitle = 'تقرير حالة شامل (طبي وإداري)';
 
     let printHTML = `
       <div style="font-size:1rem; line-height:1.7; color:#000;">
         <div style="text-align:center; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:8px;">
           <h3 style="margin:0; font-size:1.35rem; color:#0f4c5c;">${reportTitle}</h3>
-          <p style="margin:2px 0; font-size:0.88rem;">كود المريض: <b>${c.code}</b> | تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}</p>
+          <p style="margin:2px 0; font-size:0.88rem;">كود المريض: <b>${c.code}</b> | تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</p>
         </div>
 
-        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">👤 أولاً: البيانات الشخصية والإكلينيكية للمريض:</h4>
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">👤 أولاً: البيانات الشخصية والإكلينيكية الأساسية (Pre-Op Data):</h4>
         <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.92rem;">
           <tr>
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>اسم المريض:</b> ${c.name}</td>
@@ -1252,22 +1348,32 @@
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>كارت إيليت:</b> ${c.elite || 'بدون كارت'}</td>
           </tr>
           <tr>
-            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الوزن / الطول / BMI:</b> ${preOpInfo.weight || '-'} كجم / ${preOpInfo.height || '-'} سم / (<b>${preOpInfo.bmi || '-'}</b>)</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الوزن الأساسي / الطول / BMI:</b> ${preOpInfo.weight || '-'} كجم / ${preOpInfo.height || '-'} سم / (<b>${preOpInfo.bmi || '-'}</b>)</td>
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>التاريخ الطبي (M.H):</b> ${preOpInfo.mh || '-'}</td>
           </tr>
         </table>
     `;
 
+    // دمج جدول حضور العيادات
+    if (repType === 'detailed_clinical' && clinicVisitsHTML) {
+      printHTML += clinicVisitsHTML;
+    }
+
+    // دمج جدول متابعات Post-Op
+    if (repType === 'detailed_clinical' && postOpVisitsHTML) {
+      printHTML += postOpVisitsHTML;
+    }
+
     if (medicalNotes) {
       printHTML += `
-        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">🩺 ثانياً: التقرير الطبي المفصل والتوصيات العلاجية:</h4>
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">🩺 التقرير والتوصيات العلاجية والغذائية:</h4>
         <div style="border:1px solid #cbd5e1; padding:12px; border-radius:6px; margin-bottom:15px; background:#fafafa; white-space: pre-wrap; font-size:0.95rem; line-height:1.8;">${medicalNotes}</div>
       `;
     }
 
     if (showFinancials) {
       printHTML += `
-        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">💰 ثالثاً: الملخص الإداري والمالي للحالة:</h4>
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">💰 الملخص الإداري والمالي للحالة:</h4>
         <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.92rem;">
           <tr>
             <td style="padding:6px; border:1px solid #cbd5e1;"><b>نظام الدفع:</b> ${payText}</td>
@@ -1292,7 +1398,7 @@
     document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
     document.getElementById('pContent').innerHTML = printHTML;
 
-    logActivity('طباعة تقرير حالة', `تم اصدار تقرير حالة للمريض: ${c.name} (${c.code}) - نوع التقرير: ${reportTitle}`);
+    logActivity('طباعة تقرير حالة', `تم اصدار تقرير مفصل للمريض: ${c.name} (${c.code})`);
 
     closeReportModal();
     document.getElementById('printReceiptArea').style.display = 'block';
