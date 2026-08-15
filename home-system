@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>البوابة الطبية الرئيسية - د. بهاء شكري</title>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #0f4c5c;
+    --primary-hover: #0a3641;
+    --accent-gold: #d97706;
+    --accent-lime: #84cc16;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --border: #cbd5e1;
+    --success: #16a34a;
+    --warning: #ca8a04;
+    --danger: #dc2626;
+    --purple: #7c3aed;
+    --cyan: #0e7490;
+  }
+  
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+  body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; min-height: 100vh; }
+  .container { max-width: 1200px; margin: 0 auto; display: none; }
+  
+  /* Auth Screen Overlay */
+  #authOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, #155e75 0%, #0f4c5c 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .auth-box {
+    background: white;
+    padding: 35px 30px;
+    border-radius: 16px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 35px rgba(0,0,0,0.25);
+    border-top: 5px solid var(--accent-lime);
+  }
+  .auth-box .auth-logo {
+    width: 75px; height: 75px; border-radius: 50%;
+    border: 3px solid var(--accent-lime); margin: 0 auto 15px;
+    overflow: hidden; display: flex; align-items: center; justify-content: center; background: #fff;
+  }
+  .auth-box .auth-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .auth-box h2 { color: var(--primary); margin-bottom: 6px; font-size: 1.35rem; }
+  .auth-box p { font-size: 0.88rem; color: #64748b; margin-bottom: 22px; }
+  .auth-box input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    outline: none;
+    transition: 0.2s;
+  }
+  .auth-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 76, 92, 0.1); }
+  
+  header { 
+    background: var(--primary); 
+    color: white; 
+    padding: 18px 24px; 
+    border-radius: 14px; 
+    margin-bottom: 25px; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 6px 15px rgba(15, 76, 92, 0.18); 
+    border-bottom: 4px solid var(--accent-lime);
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .brand-logo { display: flex; align-items: center; gap: 16px; }
+  .logo-box {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-lime);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .logo-box img { width: 100%; height: 100%; object-fit: cover; }
+  .header-text h1 { font-size: 1.4rem; margin-bottom: 2px; color: #ffffff; }
+  .header-text p { font-size: 0.88rem; color: var(--accent-lime); font-weight: 500; }
+  
+  .btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+  .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+  .btn-success { background: var(--success); }
+  .btn-success:hover { background: #15803d; }
+  .btn-danger { background: var(--danger); }
+  .btn-danger:hover { background: #b91c1c; }
+
+  /* Live Summary Stats Bar */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+  .stat-card {
+    background: white;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-info h4 { font-size: 0.85rem; color: #64748b; margin-bottom: 4px; }
+  .stat-info .num { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+  .stat-icon { font-size: 2.2rem; opacity: 0.85; }
+
+  /* Main Portals Grid */
+  .portal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px; }
+  .portal-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 24px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    color: inherit;
+  }
+  .portal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(15, 76, 92, 0.12);
+    border-color: var(--primary);
+  }
+  
+  .portal-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge-acc { background: #e0f2fe; color: #0369a1; }
+  .badge-pre { background: #fee2e2; color: #991b1b; }
+  .badge-cln { background: #fef3c7; color: #b45309; }
+  .badge-post { background: #dcfce7; color: #166534; }
+
+  .portal-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .portal-title { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+  .portal-desc { font-size: 0.9rem; color: #64748b; line-height: 1.5; margin-bottom: 20px; flex-grow: 1; }
+  .portal-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: #f1f5f9;
+    color: var(--primary);
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: 0.2s;
+  }
+  .portal-card:hover .portal-btn { background: var(--primary); color: white; }
+
+  /* Modal Styles */
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); justify-content: center; align-items: center; padding: 15px; z-index: 1000; }
+  .modal-content { background: white; padding: 22px; border-radius: 12px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.82rem; font-weight: 600; color: #334155; }
+  .field input, .field select { padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem; outline: none; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: right; }
+  th, td { padding: 8px; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  th { background-color: #f1f5f9; color: var(--primary); font-weight: bold; }
+</style>
+</head>
+<body>
+
+<!-- Lock Screen for Authorization -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
+    </div>
+    <h2>🩺 منظومة د. بهاء شكري الطبية</h2>
+    <p>البوابة الموحدة لإدارة العيادات والعمليات والبيانات</p>
+    <input type="text" id="userInput" placeholder="اسم المستخدم (Username)...">
+    <input type="password" id="passInput" placeholder="كلمة السر (Password)..." onkeypress="if(event.key==='Enter') loginPortal()">
+    <button class="btn" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="loginPortal()">تسجيل الدخول للمنظومة 🔓</button>
+    <div id="authError" style="color: var(--danger); font-size: 0.85rem; margin-top: 12px; display: none;">❌ اسم المستخدم أو كلمة السر غير صحيحة!</div>
+  </div>
+</div>
+
+<div class="container" id="mainContainer">
+  <!-- Header -->
+  <header>
+    <div class="brand-logo">
+      <div class="logo-box">
+        <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
+      </div>
+      <div class="header-text">
+        <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
+        <p>المنظومة الطبية الشاملة لجراحات السمنة والمناظير</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span id="userBadge" style="font-size: 0.88rem; background: rgba(255,255,255,0.18); padding: 7px 14px; border-radius: 20px; font-weight: bold;">👤 مرحباً: ...</span>
+      <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold; display: none;">👤 إدارة المستخدمين</button>
+      <button onclick="logoutPortal()" style="background: #dc2626; color: white; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold;">🔒 خروج</button>
+    </div>
+  </header>
+
+  <!-- Live Counters -->
+  <div class="stats-grid">
+    <div class="stat-card" id="statPreOp">
+      <div class="stat-info">
+        <h4>حالات شيت Pre-Op</h4>
+        <div class="num" id="countPreOp">0</div>
+      </div>
+      <div class="stat-icon">📝</div>
+    </div>
+
+    <div class="stat-card" id="statClinics">
+      <div class="stat-info">
+        <h4>إجمالي حجوزات العيادات</h4>
+        <div class="num" id="countClinics" style="color: var(--accent-gold);">0</div>
+      </div>
+      <div class="stat-icon">🏥</div>
+    </div>
+
+    <div class="stat-card" id="statPostOp">
+      <div class="stat-info">
+        <h4>متابعات Post-Op</h4>
+        <div class="num" id="countPostOp" style="color: var(--success);">0</div>
+      </div>
+      <div class="stat-icon">🩺</div>
+    </div>
+
+    <!-- كارت إحصائية بيانات العملاء (خاص بالآدمن والحسابات فقط) -->
+    <div class="stat-card" id="statCustomers" style="display: none;">
+      <div class="stat-info">
+        <h4>بيانات العملاء والماليات</h4>
+        <div class="num" id="countCustomers" style="color: var(--cyan);">0</div>
+      </div>
+      <div class="stat-icon">👥</div>
+    </div>
+  </div>
+
+  <!-- Portal Access Cards -->
+  <div class="portal-grid">
+    
+    <!-- 1. Pre-Op System -->
+    <a id="cardPreOp" href="preop.html" class="portal-card">
+      <span class="portal-badge badge-pre">شيت العمليات</span>
+      <div>
+        <div class="portal-icon">📝</div>
+        <div class="portal-title">نظام ما قبل العملية (Pre-Op)</div>
+        <div class="portal-desc">تسجيل وتجهيز الحالات الجراحية، الفحوصات الطبية، رفع الأشعة، وتأكيد يومية العمليات وتوليد الأكواد.</div>
+      </div>
+      <div class="portal-btn"><span>فتح شيت Pre-Op</span> ⬅️</div>
+    </a>
+
+    <!-- 2. Clinics & Appointments -->
+    <a id="cardClinics" href="clinics.html" class="portal-card">
+      <span class="portal-badge badge-cln">العيادات والفروع</span>
+      <div>
+        <div class="portal-icon">🏥</div>
+        <div class="portal-title">حجوزات العيادات الخارجية</div>
+        <div class="portal-desc">إدارة مواعيد وحجوزات الفروع، تسجيل الحضور، الكشوفات والمتابعات، والتحصيل اليومي ورفع الروشتات.</div>
+      </div>
+      <div class="portal-btn"><span>فتح جدول العيادات</span> ⬅️</div>
+    </a>
+
+    <!-- 3. Post-Op Follow-up -->
+    <a id="cardPostOp" href="postop.html" class="portal-card">
+      <span class="portal-badge badge-post">المتابعة والتغذية</span>
+      <div>
+        <div class="portal-icon">🩺</div>
+        <div class="portal-title">متابعة ما بعد العملية (Post-Op)</div>
+        <div class="portal-desc">سجل نزول الوزن والـ BMI، مراحل التغذية، إشراف دكتور الجراحة والتغذية، رفع فيديو العملية والتقرير المفصل.</div>
+      </div>
+      <div class="portal-btn"><span>فتح شيت Post-Op</span> ⬅️</div>
+    </a>
+
+    <!-- 4. Accounts & Customer Data (خاص بالآدمن والحسابات فقط) -->
+    <a id="cardAccounts" href="index.html" class="portal-card" style="display: none;">
+      <span class="portal-badge badge-acc">إدارة العملاء والماليات</span>
+      <div>
+        <div class="portal-icon">👥</div>
+        <div class="portal-title">نظام إدارة وتخزين بيانات العملاء</div>
+        <div class="portal-desc">تخزين بيانات العملاء، إدارة الأقساط والمدفوعات، كروت إيليت، إصدار الفواتير وطباعة كشوف الحسابات الشاملة.</div>
+      </div>
+      <div class="portal-btn"><span>فتح بيانات العملاء</span> ⬅️</div>
+    </a>
+
+  </div>
+</div>
+
+<!-- Modal Manage Users (Admin Only) -->
+<div id="usersModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">👤 إدارة الأطباء والمستخدمين وصلاحيات النظام</h3>
+      <button onclick="closeUsersModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+
+    <!-- إضافة مستخدم -->
+    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
+      <h4 style="margin-bottom: 10px; color: var(--primary);">➕ إضافة طبيب / مستخدم جديد:</h4>
+      <div class="grid">
+        <div class="field"><label>اسم المستخدم (اليوزر)</label><input type="text" id="newUsername" placeholder="مثال: dr_ahmed"></div>
+        <div class="field"><label>كلمة السر</label><input type="text" id="newPassword" placeholder="مثال: 123456"></div>
+        <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: د. أحمد تغذية"></div>
+        <div class="field">
+          <label>نوع وصلاحية الحساب:</label>
+          <select id="newUserRole">
+            <option value="doctor" selected>🩺 دكتور متابعة وتغذية (أقسام طبية فقط)</option>
+            <option value="accountant">💼 موظف حسابات (بيانات العملاء فقط)</option>
+            <option value="admin">⭐ مدير نظام كامل (كل الصلاحيات)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-success" style="width: 100%; margin-top: 5px;" onclick="addNewUser()">➕ إضافة المستخدم وحفظه أونلاين</button>
+    </div>
+
+    <!-- قائمة المستخدمين والحذف -->
+    <h4 style="color: var(--primary); margin-bottom: 8px;">📋 قائمة المستخدمين المسجلين حالياً:</h4>
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>الاسم الظاهر</th>
+            <th>اليوزر</th>
+            <th>الصلاحية</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <tr><td colspan="4" style="text-align:center; padding:10px;">⏳ جاري جلب المستخدمين...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let currentUser = null;
+
+  window.onload = function() {
+    let savedUser = localStorage.getItem('activeSystemUser');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      initPortal();
+    }
+  };
+
+  async function loginPortal() {
+    let u = document.getElementById('userInput').value.trim();
+    let p = document.getElementById('passInput').value.trim();
+    let err = document.getElementById('authError');
+
+    if (!u || !p) return err.style.display = 'block';
+
+    const { data, error } = await supabaseClient.from('system_users').select('*').eq('username', u).eq('password', p);
+
+    if (data && data.length > 0) {
+      currentUser = data[0];
+      localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
+      err.style.display = 'none';
+      initPortal();
+    } else {
+      err.style.display = 'block';
+    }
+  }
+
+  function initPortal() {
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('mainContainer').style.display = 'block';
+    
+    let roleText = currentUser.role === 'admin' ? '⭐ المشرف العام' : (currentUser.role === 'doctor' ? '🩺 طبيب' : '💼 إدارة الحسابات');
+    document.getElementById('userBadge').innerText = `👤 ${currentUser.full_name} (${roleText})`;
+
+    // 🔒 إظهار زر إدارة المستخدمين للآدمن فقط
+    if (currentUser.role === 'admin') {
+      document.getElementById('manageUsersBtn').style.display = 'inline-block';
+    } else {
+      document.getElementById('manageUsersBtn').style.display = 'none';
+    }
+
+    applyRolePermissions();
+    fetchLiveStats();
+  }
+
+  function applyRolePermissions() {
+    let role = currentUser.role;
+
+    if (role === 'admin' || role === 'accountant') {
+      document.getElementById('cardAccounts').style.display = 'flex';
+      document.getElementById('statCustomers').style.display = 'flex';
+    } else {
+      document.getElementById('cardAccounts').style.display = 'none';
+      document.getElementById('statCustomers').style.display = 'none';
+    }
+
+    if (role === 'accountant') {
+      document.getElementById('cardPreOp').style.display = 'none';
+      document.getElementById('statPreOp').style.display = 'none';
+      document.getElementById('cardPostOp').style.display = 'none';
+      document.getElementById('statPostOp').style.display = 'none';
+    } else {
+      document.getElementById('cardPreOp').style.display = 'flex';
+      document.getElementById('statPreOp').style.display = 'flex';
+      document.getElementById('cardPostOp').style.display = 'flex';
+      document.getElementById('statPostOp').style.display = 'flex';
+    }
+  }
+
+  function logoutPortal() {
+    localStorage.removeItem('activeSystemUser');
+    currentUser = null;
+    document.getElementById('mainContainer').style.display = 'none';
+    document.getElementById('authOverlay').style.display = 'flex';
+  }
+
+  /* 👤 دوال إدارة المستخدمين (إضافة / حذف) */
+  function openUsersModal() {
+    if (!currentUser || currentUser.role !== 'admin') return alert('⚠️ خاص بالمشرف فقط');
+    document.getElementById('usersModal').style.display = 'flex';
+    fetchSystemUsersList();
+  }
+
+  function closeUsersModal() {
+    document.getElementById('usersModal').style.display = 'none';
+  }
+
+  async function fetchSystemUsersList() {
+    let tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px;">⏳ جاري جلب المستخدمين...</td></tr>';
+
+    const { data, error } = await supabaseClient.from('system_users').select('*').order('id', { ascending: false });
+
+    if (!error && data) {
+      tbody.innerHTML = '';
+      data.forEach(user => {
+        let roleBadge = user.role === 'admin' ? '<b style="color:var(--accent-gold);">⭐ مدير نظام</b>' : (user.role === 'doctor' ? '<b style="color:var(--success);">🩺 طبيب</b>' : '<b style="color:var(--cyan);">💼 حسابات</b>');
+        
+        let deleteBtn = '';
+        if (user.username !== currentUser.username) {
+          deleteBtn = `<button class="btn btn-danger" style="padding: 4px 10px; font-size:0.78rem;" onclick="deleteUser(${user.id}, '${user.full_name}')">🗑️ حذف</button>`;
+        } else {
+          deleteBtn = `<span style="color:#94a3b8; font-size:0.78rem;">(حسابك الحالي)</span>`;
+        }
+
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${user.full_name}</b></td>
+            <td>${user.username}</td>
+            <td>${roleBadge}</td>
+            <td>${deleteBtn}</td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  async function addNewUser() {
+    let username = document.getElementById('newUsername').value.trim();
+    let password = document.getElementById('newPassword').value.trim();
+    let full_name = document.getElementById('newFullName').value.trim();
+    let role = document.getElementById('newUserRole').value;
+
+    if (!username || !password || !full_name) return alert('برجاء كتابة كل البيانات المطلوبة');
+
+    const { error } = await supabaseClient.from('system_users').insert([{ username, password, full_name, role: role }]);
+
+    if (!error) {
+      alert('✅ تم إضافة المستخدم بنجاح!');
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('newFullName').value = '';
+      fetchSystemUsersList();
+    } else {
+      alert('⚠️ تعذر الإضافة، قد يكون اسم المستخدم مكرراً.');
+    }
+  }
+
+  async function deleteUser(userId, userName) {
+    let conf = confirm(`⚠️ هل أنت متأكد من حذف المستخدم (${userName}) نهائياً من السيستم؟`);
+    if (conf) {
+      const { error } = await supabaseClient.from('system_users').delete().eq('id', userId);
+      if (!error) {
+        alert(`✅ تم حذف المستخدم (${userName}) بنجاح.`);
+        fetchSystemUsersList();
+      } else {
+        alert('⚠️ تعذر الحذف، يرجى مراجعة الاتصال.');
+      }
+    }
+  }
+
+  async function fetchLiveStats() {
+    let role = currentUser ? currentUser.role : '';
+
+    if (role !== 'accountant') {
+      const { count: preCount } = await supabaseClient.from('preop_records').select('*', { count: 'exact', head: true });
+      document.getElementById('countPreOp').innerText = preCount || 0;
+
+      const { count: postCount } = await supabaseClient.from('postop_records').select('*', { count: 'exact', head: true });
+      document.getElementById('countPostOp').innerText = postCount || 0;
+    }
+
+    const { count: appCount } = await supabaseClient.from('appointments').select('*', { count: 'exact', head: true });
+    document.getElementById('countClinics').innerText = appCount || 0;
+
+    if (role === 'admin' || role === 'accountant') {
+      const { count: custCount } = await supabaseClient.from('customers').select('*', { count: 'exact', head: true });
+      document.getElementById('countCustomers').innerText = custCount || 0;
+    }
+  }
+</script>
+</body>
+</html>
