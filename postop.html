@@ -433,22 +433,32 @@
   </div>
 </div>
 
-<!-- Modal Report Preparation (إعداد التقرير الطبي الشامل من Post-Op) -->
+<!-- Modal Case Report Generator (📄 تقرير الحالة الطبي المفصل - بدون الجزء المالي) -->
 <div id="reportModal" class="modal">
   <div class="modal-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 id="repModalTitle" style="color: var(--primary);">📄 إعداد التقرير الطبي والمتابعة الشاملة</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 id="repModalTitle" style="color: var(--primary);">📄 إعداد تقرير وتوصيات المريض الطبية</h3>
       <button onclick="closeReportModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
 
     <input type="hidden" id="repPatientCode">
 
-    <div class="field" style="margin-bottom: 16px;">
-      <label style="font-weight: bold; color: var(--primary);">✍️ التقرير الطبي، الملاحظات الإكلينيكية، وتوصيات التغذية الحالية:</label>
-      <textarea id="repMedicalText" rows="5" placeholder="اكتب هنا التوصيات الطبية والغذائية التفصيلية للحالة..." style="font-size: 0.95rem; line-height: 1.5;"></textarea>
+    <div style="background: #e0f2fe; border: 1px solid #7dd3fc; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+      <div class="field" style="margin-bottom: 0;">
+        <label style="font-weight: bold; color: #0369a1;">نوع التقرير المراد إصداره:</label>
+        <select id="repTypeSelect" style="font-weight: bold; padding: 8px;">
+          <option value="detailed_clinical" selected>📋 تقرير طبي مفصل شامل (Pre-Op + العيادات + متابعات Post-Op)</option>
+          <option value="medical_only">🩺 تقرير طبي وإكلينيكي مختصر فقط</option>
+        </select>
+      </div>
     </div>
 
-    <button class="btn btn-report" style="width:100%; padding:12px; font-size:1rem;" onclick="printPostOpPatientReport()">🖨️ معاينة وتوليد التقرير الشامل للطباعة</button>
+    <div class="field" style="margin-bottom: 16px;">
+      <label style="font-weight: bold; color: var(--primary);">✍️ التقرير الطبي المفصل والتوصيات والإرشادات للحالة:</label>
+      <textarea id="repMedicalText" rows="5" placeholder="اكتب هنا التقرير الطبي المفصل، ملاحظات ما بعد العملية، إرشادات التغذية والمتابعة..." style="font-size: 0.95rem; line-height: 1.5;"></textarea>
+    </div>
+
+    <button class="btn btn-report" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="printPostOpPatientReport()">🖨️ معاينة وتوليد التقرير للطباعة</button>
   </div>
 </div>
 
@@ -830,7 +840,7 @@
           <td><span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${item.recordedBy || 'غير محدد'}</span></td>
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;" title="${item.doctorNotes || ''}">${item.doctorNotes || '-'}</td>
           <td>
-            <button class="btn btn-report" style="padding:3px 8px; font-size:0.75rem;" onclick="openReportModal(${item.dbId})">📄 التقرير المفصل</button>
+            <button class="btn btn-report" style="padding:3px 8px; font-size:0.75rem;" onclick="openReportModal(${item.dbId})">📄 التقرير</button>
             <button class="btn btn-warning" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="openEditPostModal(${item.dbId})">✏️ تعديل</button>
             <button class="btn btn-danger" style="padding:3px 8px; font-size:0.75rem; margin-top:2px;" onclick="deletePostOpRecord(${item.dbId})">🗑️ حذف</button>
           </td>
@@ -1013,15 +1023,15 @@
     }
   }
 
-  /* 📄 إعداد وفتح نافذة التقرير المفصل من شيت Post-Op */
+  /* 📄 إعداد وفتح نافذة التقرير الطبي من شيت Post-Op */
   function openReportModal(dbId) {
     let item = allPostOpRecords.find(a => a.dbId === dbId);
     if (!item) return;
 
     currentActiveDbId = dbId;
     document.getElementById('repPatientCode').value = item.code || '';
-    document.getElementById('repModalTitle').innerText = `📄 إعداد التقرير الطبي الشامل: ${item.name} (${item.code || '-'})`;
-    document.getElementById('repMedicalText').value = item.doctorNotes ? `[آخر ملاحظات مسجلة]: ${item.doctorNotes}` : `الحالة مستقرة وتوصى بالالتزام التام بالنظام الغذائي المقرر، شرب السوائل بانتظام، تناول الفيتامينات، وإجراء التحاليل الدورية.`;
+    document.getElementById('repModalTitle').innerText = `📄 إعداد التقرير الطبي للمريض: ${item.name} (${item.code || '-'})`;
+    document.getElementById('repMedicalText').value = item.doctorNotes ? `الحالة خضعت لجراحة (${item.operation || 'السمنة'}) بتاريخ ${item.opDate || '-'}. الحالة مستقرة وتوصى بالمتابعة الدورية، الالتزام بالتعليمات الغذائية، وإجراء الفحوصات الدورية المخصصة.\n\n[ملاحظات المتابعة]: ${item.doctorNotes}` : `الحالة خضعت لجراحة (${item.operation || 'السمنة'}) بتاريخ ${item.opDate || '-'}. الحالة مستقرة وتوصى بالمتابعة الدورية، الالتزام بالتعليمات الغذائية، وإجراء الفحوصات الدورية المخصصة.`;
 
     document.getElementById('reportModal').style.display = 'flex';
   }
@@ -1030,17 +1040,18 @@
     document.getElementById('reportModal').style.display = 'none';
   }
 
-  /* 🖨️ توليد وطباعة التقرير الشامل والمفصل */
+  /* 🖨️ توليد وطباعة التقرير الطبي الشامل والمفصل (مطابق لشكل index بدون الجزء المالي) */
   async function printPostOpPatientReport() {
     let currentPost = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
     if (!currentPost) return;
 
+    let repType = document.getElementById('repTypeSelect').value;
     let patientCode = currentPost.code || '';
     let patientName = currentPost.name || '';
-    let doctorRecommendations = document.getElementById('repMedicalText').value.trim();
+    let medicalNotes = document.getElementById('repMedicalText').value.trim();
 
     // 1. جلب بيانات Pre-Op
-    let preOpInfo = { age: '-', weight: currentPost.preOpWeight || '-', height: currentPost.height || '-', bmi: '-', mh: '-', labs: '-', opDate: currentPost.opDate || '-', operation: currentPost.operation || '-', hospital: '-' };
+    let preOpInfo = { age: '-', weight: currentPost.preOpWeight || '-', height: currentPost.height || '-', bmi: currentPost.currentBmi || '-', mh: '-', labs: '-', opDate: currentPost.opDate || '-', operation: currentPost.operation || '-', hospital: '-' };
     const { data: preOpData } = await supabaseClient.from('preop_records').select('*');
     if (preOpData && patientCode) {
       let matched = preOpData.find(item => item.data && item.data.patientCode && item.data.patientCode.trim().toLowerCase() === patientCode.toLowerCase());
@@ -1143,41 +1154,54 @@
       `;
     }
 
+    let reportTitle = (repType === 'medical_only') ? 'تقرير طبي وإكلينيكي مفصل' : 'تقرير تقييم ومتابعة حالة شامل (طبي وإكلينيكي)';
+
     let printHTML = `
       <div style="font-size:1rem; line-height:1.7; color:#000;">
         <div style="text-align:center; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:8px;">
-          <h3 style="margin:0; font-size:1.35rem; color:#0f4c5c;">تقرير تقييم ومتابعة حالة المريض الشامل والمفصل</h3>
-          <p style="margin:2px 0; font-size:0.88rem;">كود المريض: <b>${patientCode || '-'}</b> | تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</p>
+          <h3 style="margin:0; font-size:1.35rem; color:#0f4c5c;">${reportTitle}</h3>
+          <p style="margin:2px 0; font-size:0.88rem;">كود المريض: <b>${patientCode || '-'}</b> | تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}</p>
         </div>
 
-        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">👤 أولاً: البيانات الإكلينيكية والجراحية الأساسية (Pre-Op Data):</h4>
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">👤 أولاً: البيانات الشخصية والإكلينيكية للمريض:</h4>
         <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.92rem;">
           <tr>
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>اسم المريض:</b> ${patientName}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الرقم القومي:</b> ${preOpInfo.nationalId || '-'}</td>
+          </tr>
+          <tr>
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>الإجراء الجراحي:</b> ${preOpInfo.operation || currentPost.operation || '-'}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>تاريخ الجراحة:</b> ${preOpInfo.opDate || currentPost.opDate || '-'}</td>
           </tr>
           <tr>
-            <td style="padding:5px; border:1px solid #e2e8f0;"><b>تاريخ إجراء العملية:</b> ${preOpInfo.opDate || currentPost.opDate || '-'}</td>
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>المستشفى:</b> ${preOpInfo.hospital || '-'}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>المحافظة / العنوان:</b> ${preOpInfo.governorate || preOpInfo.gov || '-'}</td>
           </tr>
           <tr>
-            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الوزن الأساسي قبل العملية:</b> ${preOpInfo.weight || '-'} كجم</td>
-            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الطول / BMI الأساسي:</b> ${preOpInfo.height || '-'} سم / (<b>${preOpInfo.bmi || '-'}</b>)</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>الوزن الأساسي / الطول / BMI:</b> ${preOpInfo.weight || '-'} كجم / ${preOpInfo.height || '-'} سم / (<b>${preOpInfo.bmi || '-'}</b>)</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>التاريخ الطبي (M.H):</b> ${preOpInfo.mh || '-'}</td>
           </tr>
           <tr>
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>الدكتور المشرف (جراحة):</b> ${currentPost.docSurg || 'د. بهاء شكري'}</td>
             <td style="padding:5px; border:1px solid #e2e8f0;"><b>الدكتور المشرف (تغذية):</b> ${currentPost.docNutrition || '-'}</td>
           </tr>
         </table>
+    `;
 
-        ${clinicVisitsHTML}
-        ${postOpVisitsHTML}
+    // دمج الجداول الإضافية إذا كان التقرير مفصلاً
+    if (repType === 'detailed_clinical') {
+      if (clinicVisitsHTML) printHTML += clinicVisitsHTML;
+      if (postOpVisitsHTML) printHTML += postOpVisitsHTML;
+    }
 
-        ${doctorRecommendations ? `
-          <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">🩺 توصيات وخطة العلاج والمتابعة القادمة:</h4>
-          <div style="border:1px solid #cbd5e1; padding:12px; border-radius:6px; margin-bottom:15px; background:#fafafa; white-space: pre-wrap; font-size:0.95rem; line-height:1.8;">${doctorRecommendations}</div>
-        ` : ''}
+    if (medicalNotes) {
+      printHTML += `
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">🩺 التقرير الطبي المفصل والتوصيات العلاجية والغذائية:</h4>
+        <div style="border:1px solid #cbd5e1; padding:12px; border-radius:6px; margin-bottom:15px; background:#fafafa; white-space: pre-wrap; font-size:0.95rem; line-height:1.8;">${medicalNotes}</div>
+      `;
+    }
 
+    printHTML += `
         <div style="margin-top:35px; display:flex; justify-content:space-between; padding-top:15px; border-top:1px dashed #000; font-size:0.9rem;">
           <div><b>توقيع استشاري جراحات السمنة:</b> ..........................</div>
           <div><b>توقيع استشاري التغذية العلاجية:</b> ..........................</div>
@@ -1188,7 +1212,7 @@
     document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
     document.getElementById('pContent').innerHTML = printHTML;
 
-    logActivity('طباعة تقرير مفصل', `تم اصدار تقرير شامل للمريض: ${patientName} (كود: ${patientCode}) من نظام Post-Op`);
+    logActivity('طباعة تقرير حالة', `تم اصدار تقرير طبي للمريض: ${patientName} (${patientCode}) - نوع التقرير: ${reportTitle}`);
 
     closeReportModal();
     document.getElementById('printReceiptArea').style.display = 'block';
@@ -1256,7 +1280,7 @@
 
   function closeVideoViewer() {
     let playerBox = document.getElementById('videoPlayerBox');
-    playerBox.innerHTML = ''; // إيقاف تشغيل الفيديو عند الإغلاق
+    playerBox.innerHTML = '';
     document.getElementById('videoViewerModal').style.display = 'none';
   }
 </script>
