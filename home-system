@@ -316,7 +316,7 @@
 <div id="usersModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 style="color: var(--primary);">👤 إدارة الأطباء والمستخدمين وصلاحيات النظام</h3>
+      <h3 style="color: var(--primary);">👤 إدارة الأطباء والمستخدمين (خاص بالمشرف العام فقط)</h3>
       <button onclick="closeUsersModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
 
@@ -400,7 +400,7 @@
     let roleText = currentUser.role === 'admin' ? '⭐ المشرف العام' : (currentUser.role === 'doctor' ? '🩺 طبيب' : '💼 إدارة الحسابات');
     document.getElementById('userBadge').innerText = `👤 ${currentUser.full_name} (${roleText})`;
 
-    // 🔒 إظهار زر إدارة المستخدمين للآدمن فقط
+    // 🔒 إظهار زر إدارة المستخدمين فقط للآدمن
     if (currentUser.role === 'admin') {
       document.getElementById('manageUsersBtn').style.display = 'inline-block';
     } else {
@@ -442,9 +442,12 @@
     document.getElementById('authOverlay').style.display = 'flex';
   }
 
-  /* 👤 دوال إدارة المستخدمين (إضافة / حذف) */
+  /* 👤 دوال إدارة المستخدمين (إضافة / حذف - للآدمن فقط) */
   function openUsersModal() {
-    if (!currentUser || currentUser.role !== 'admin') return alert('⚠️ خاص بالمشرف فقط');
+    // 🔒 تحقق أمني صارم
+    if (!currentUser || currentUser.role !== 'admin') {
+      return alert('⚠️ غير مسموح: صلاحية إدارة المستخدمين متاحة فقط لحساب المشرف العام (Admin).');
+    }
     document.getElementById('usersModal').style.display = 'flex';
     fetchSystemUsersList();
   }
@@ -454,6 +457,8 @@
   }
 
   async function fetchSystemUsersList() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+
     let tbody = document.getElementById('usersTableBody');
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:10px;">⏳ جاري جلب المستخدمين...</td></tr>';
 
@@ -465,6 +470,7 @@
         let roleBadge = user.role === 'admin' ? '<b style="color:var(--accent-gold);">⭐ مدير نظام</b>' : (user.role === 'doctor' ? '<b style="color:var(--success);">🩺 طبيب</b>' : '<b style="color:var(--cyan);">💼 حسابات</b>');
         
         let deleteBtn = '';
+        // منع الآدمن من حذف حسابه الشخصي المسجل به حالياً
         if (user.username !== currentUser.username) {
           deleteBtn = `<button class="btn btn-danger" style="padding: 4px 10px; font-size:0.78rem;" onclick="deleteUser(${user.id}, '${user.full_name}')">🗑️ حذف</button>`;
         } else {
@@ -484,6 +490,10 @@
   }
 
   async function addNewUser() {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return alert('⚠️ غير مسموح: إضافة مستخدمين جديدة متاحة للآدمن فقط.');
+    }
+
     let username = document.getElementById('newUsername').value.trim();
     let password = document.getElementById('newPassword').value.trim();
     let full_name = document.getElementById('newFullName').value.trim();
@@ -505,7 +515,11 @@
   }
 
   async function deleteUser(userId, userName) {
-    let conf = confirm(`⚠️ هل أنت متأكد من حذف المستخدم (${userName}) نهائياً من السيستم؟`);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return alert('⚠️ غير مسموح: حذف المستخدمين متاح للآدمن فقط.');
+    }
+
+    let conf = confirm(`⚠️ هل أنت متأكد من حذف المستخدم (${userName}) نهائياً من السيستم؟\nلا يمكن التراجع عن هذه الخطوة!`);
     if (conf) {
       const { error } = await supabaseClient.from('system_users').delete().eq('id', userId);
       if (!error) {
