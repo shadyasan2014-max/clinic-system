@@ -73,6 +73,8 @@
   .btn-danger:hover { background: #b91c1c; }
   .btn-warning { background: var(--accent-gold); color: white; }
   .btn-warning:hover { background: #b45309; }
+  .btn-info { background: #0284c7; color: white; }
+  .btn-info:hover { background: #0369a1; }
   
   table { width: 100%; border-collapse: collapse; margin-top: 12px; text-align: right; }
   th, td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; }
@@ -98,6 +100,21 @@
   .img-preview { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; display: none; background: #f8fafc; }
 
   .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  @media print {
+    body * { visibility: hidden !important; }
+    #printReceiptArea, #printReceiptArea * { visibility: visible !important; }
+    #printReceiptArea { 
+      display: block !important;
+      position: absolute !important; 
+      left: 0 !important; 
+      top: 0 !important; 
+      width: 100% !important; 
+      padding: 20px !important; 
+      background: #fff !important;
+      color: #000 !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -240,33 +257,39 @@
       <div class="field" style="grid-column: span 2;">
         <label>ابحث باسم المريض أو رقم التليفون أو الكود لاستدعاء سجل الكشوفات والملاحظات والروشتات وتعديلها:</label>
         <div style="display: flex; gap: 10px;">
-          <input type="text" id="globalSearchInput" placeholder="اكتب الاسم، التليفون، أو الكود هنا..." style="flex: 1;">
-          <button class="btn btn-secondary" style="width: auto; padding: 10px 20px;" onclick="globalSearchArchive()">بحث في الأرشيف</button>
+          <input type="text" id="globalSearchInput" placeholder="اكتب الاسم، التليفون، أو الكود هنا..." style="flex: 1;" onkeypress="if(event.key==='Enter') globalSearchArchive()">
+          <button class="btn btn-secondary" style="width: auto; padding: 10px 20px;" onclick="globalSearchArchive()">🔍 بحث في الأرشيف</button>
         </div>
       </div>
     </div>
 
     <div id="archiveResultsBox" style="display: none; margin-top: 16px; background: #fff; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-      <h4 style="color: var(--primary); margin-bottom: 10px;">📂 نتائج البحث والأرشيف الطبي:</h4>
-      <table>
-        <thead>
-          <tr>
-            <th>اسم المريض</th>
-            <th>كود المريض</th>
-            <th>التليفون</th>
-            <th>الفرع والتاريخ</th>
-            <th>نوع الزيارة</th>
-            <th>تاريخ العملية</th>
-            <th>الرسوم</th>
-            <th>الملاحظات الطبية</th>
-            <th>صورة الروشتة</th>
-            <th>تعديل البيان</th>
-          </tr>
-        </thead>
-        <tbody id="archiveTableBody">
-          <!-- Results populated by JS -->
-        </tbody>
-      </table>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+        <h4 style="color: var(--primary); margin: 0;">📂 نتائج البحث والأرشيف الطبي:</h4>
+        <button class="btn btn-success" style="padding: 6px 14px; font-size: 0.85rem;" onclick="printSearchResultsTable()">🖨️ طباعة نتائج البحث كشف كامل</button>
+      </div>
+      
+      <div class="table-responsive" style="border: 1px solid #e2e8f0; border-radius: 6px; overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>اسم المريض</th>
+              <th>كود المريض</th>
+              <th>التليفون</th>
+              <th>الفرع والتاريخ</th>
+              <th>نوع الزيارة</th>
+              <th>تاريخ العملية</th>
+              <th>الرسوم</th>
+              <th>الملاحظات الطبية</th>
+              <th>الروشتة</th>
+              <th>الإجراءات والطباعة</th>
+            </tr>
+          </thead>
+          <tbody id="archiveTableBody">
+            <!-- Results populated by JS -->
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -370,6 +393,21 @@
   </div>
 </div>
 
+<!-- Printable Area Template -->
+<div id="printReceiptArea" style="display: none;">
+  <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 15px;">
+    <div style="width:75px; height:75px; border-radius:50%; overflow:hidden; border:1px solid #000;">
+      <img src="Logo.png" alt="Logo" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='logo.png'; this.onerror=null;">
+    </div>
+    <div>
+      <h2 style="margin:0;">🩺 د. بهاء شكري - Dr. Bahaa Shoukry</h2>
+      <p style="margin:2px 0;">استشاري جراحات السمنة والمناظير</p>
+      <p id="pDate" style="margin-top: 5px; font-size: 0.9rem;"></p>
+    </div>
+  </div>
+  <div id="pContent"></div>
+</div>
+
 <script>
   // 🔗 Supabase Configuration
   const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
@@ -382,6 +420,7 @@
   let allAppointments = [];
   let currentCheckInId = null;
   let currentUploadedImg = "";
+  let lastSearchResults = [];
 
   window.onload = function() {
     renderClinicsOptions();
@@ -406,7 +445,6 @@
     }
   }
 
-  // 🔄 دالة سحب بيانات المريض تلقائياً من Pre-Op بمجرد كتابة الكود
   async function fetchPatientDetailsFromPreOp(target) {
     let codeInputId = (target === 'booking') ? 'bookingPatientCode' : 'modalPatientCode';
     let code = document.getElementById(codeInputId).value.trim();
@@ -474,7 +512,7 @@
 
   function removeClinic(name) {
     if(availableClinics.length <= 1) return alert("يجب إبقاء عيادة واحدة على الأقل في السيستم!");
-    if(confirm(`هل أنت تأكد من إلغاء (${name}) من القائمة؟`)) {
+    if(confirm(`هل أنت متأكد من إلغاء (${name}) من القائمة؟`)) {
       availableClinics = availableClinics.filter(c => c !== name);
       renderClinicsOptions();
       filterAppointments();
@@ -614,7 +652,7 @@
   }
 
   async function cancelAppointment(dbId) {
-    if(confirm("هل أنت تأكد من إلغاء هذا الحجز؟")) {
+    if(confirm("هل أنت متأكد من إلغاء هذا الحجز؟")) {
       let app = allAppointments.find(a => a.dbId === dbId);
       if(app) {
         let updatedPayload = { ...app };
@@ -676,7 +714,7 @@
       return;
     }
 
-    let results = allAppointments.filter(app => 
+    lastSearchResults = allAppointments.filter(app => 
       app.name.toLowerCase().includes(query) ||
       (app.patientCode && app.patientCode.toLowerCase().includes(query)) ||
       app.phone1.includes(query) ||
@@ -684,13 +722,13 @@
     );
 
     tbody.innerHTML = '';
-    if(results.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#dc2626;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
+    if(lastSearchResults.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#dc2626; padding:15px;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
     } else {
-      results.forEach(app => {
+      lastSearchResults.forEach(app => {
         let imgBtn = app.paperImg 
-          ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ فتح الروشتة</button>` 
-          : '<span style="color:#94a3b8; font-size:0.85rem;">لا توجد صورة</span>';
+          ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size:0.75rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` 
+          : '<span style="color:#94a3b8; font-size:0.8rem;">لا توجد</span>';
 
         let feeText = app.isFree ? '<span class="free-badge">مجاني 🎁</span>' : (app.fee ? `${parseFloat(app.fee).toLocaleString()} ج.م` : '-');
 
@@ -703,10 +741,13 @@
             <td><span class="visit-badge">${app.visitType}</span></td>
             <td>${app.surgeryDate || '-'}</td>
             <td>${feeText}</td>
-            <td>${app.notes || '-'}</td>
+            <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;" title="${app.notes || ''}">${app.notes || '-'}</td>
             <td>${imgBtn}</td>
             <td>
-              <button class="btn btn-warning" style="padding: 4px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل الزيارة</button>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button class="btn btn-info" style="padding: 4px 8px; font-size:0.75rem;" onclick="printSinglePatientFile('${app.patientCode || ''}', '${app.name}')">🖨️ طباعة ملف الحالة</button>
+                <button class="btn btn-warning" style="padding: 4px 8px; font-size:0.75rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل</button>
+              </div>
             </td>
           </tr>
         `;
@@ -714,6 +755,183 @@
     }
 
     box.style.display = 'block';
+  }
+
+  /* 🖨️ 1. دالة طباعة نتائج البحث كشف تجميعي شامل */
+  function printSearchResultsTable() {
+    if (!lastSearchResults || lastSearchResults.length === 0) {
+      alert("⚠️ لا توجد نتائج بحث للطباعة!");
+      return;
+    }
+
+    let query = document.getElementById('globalSearchInput').value.trim();
+    let totalFees = 0;
+    let rowsHTML = "";
+
+    lastSearchResults.forEach((app, idx) => {
+      let feeVal = (!app.isFree && app.status === 'done') ? (parseFloat(app.fee) || 0) : 0;
+      totalFees += feeVal;
+
+      let feeDisplay = app.isFree ? 'مجاني 🎁' : (app.status === 'done' ? `${feeVal.toLocaleString()} ج.م` : 'غير محصل');
+      let statusDisplay = app.status === 'done' ? '✅ تم الكشف' : (app.status === 'cancelled' ? '❌ ملغى' : '⏳ معلق');
+
+      rowsHTML += `
+        <tr>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${idx + 1}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;"><b>${app.patientCode || '-'}</b></td>
+          <td style="border:1px solid #000; padding:6px;"><b>${app.name}</b></td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${app.phone1}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${app.clinic}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${app.date}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${app.visitType}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${statusDisplay}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:left;">${feeDisplay}</td>
+          <td style="border:1px solid #000; padding:6px; font-size:0.85rem;">${app.notes || '-'}</td>
+        </tr>
+      `;
+    });
+
+    let printHTML = `
+      <div style="font-size:0.95rem; line-height:1.6; color:#000;">
+        <div style="text-align:center; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:8px;">
+          <h3 style="margin:0; font-size:1.3rem; color:#0f4c5c;">📊 كشف نتائج الأرشيف والبحث عن: (${query})</h3>
+          <p style="margin:4px 0 0 0; font-size:0.88rem;">إجمالي الزيارات بالتقرير: <b>${lastSearchResults.length} زيارة</b> | تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</p>
+        </div>
+
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.88rem;">
+          <thead>
+            <tr style="background:#f1f5f9;">
+              <th style="border:1px solid #000; padding:6px;">#</th>
+              <th style="border:1px solid #000; padding:6px;">الكود</th>
+              <th style="border:1px solid #000; padding:6px;">اسم المريض</th>
+              <th style="border:1px solid #000; padding:6px;">الهاتف</th>
+              <th style="border:1px solid #000; padding:6px;">العيادة</th>
+              <th style="border:1px solid #000; padding:6px;">التاريخ</th>
+              <th style="border:1px solid #000; padding:6px;">الزيارة</th>
+              <th style="border:1px solid #000; padding:6px;">الحالة</th>
+              <th style="border:1px solid #000; padding:6px;">الرسوم</th>
+              <th style="border:1px solid #000; padding:6px;">الملاحظات والتشخيص</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHTML}
+          </tbody>
+          <tfoot>
+            <tr style="background:#e2e8f0; font-weight:bold;">
+              <td colspan="8" style="border:1px solid #000; padding:8px; text-align:center;">إجمالي الرسوم المحصلة بالكشف:</td>
+              <td colspan="2" style="border:1px solid #000; padding:8px; text-align:left; color:green;">${totalFees.toLocaleString()} ج.م</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="margin-top:30px; display:flex; justify-content:space-between; padding-top:15px; border-top:1px dashed #000; font-size:0.88rem;">
+          <div><b>توقيع إدارة العيادات:</b> ..........................</div>
+          <div><b>يعتمد (د. بهاء شكري):</b> ..........................</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
+    document.getElementById('pContent').innerHTML = printHTML;
+
+    document.getElementById('printReceiptArea').style.display = 'block';
+    window.print();
+    document.getElementById('printReceiptArea').style.display = 'none';
+  }
+
+  /* 🖨️ 2. دالة طباعة تقرير ملف الحالة المفصل بكل الزيارات السابقة والملاحظات */
+  async function printSinglePatientFile(patientCode, patientName) {
+    // جلب كافة زيارات هذا المريض في كافة العيادات
+    let patientVisits = allAppointments.filter(app => (
+      (patientCode && app.patientCode && app.patientCode.trim().toLowerCase() === patientCode.trim().toLowerCase()) ||
+      (app.name && app.name.trim().toLowerCase() === patientName.trim().toLowerCase())
+    ));
+
+    if (patientVisits.length === 0) {
+      alert("⚠️ لا توجد بيانات مسجلة لهذا المريض!");
+      return;
+    }
+
+    // فرز الزيارات حسب التاريخ
+    patientVisits.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    let mainInfo = patientVisits[0];
+    let surgeryDate = patientVisits.find(v => v.surgeryDate)?.surgeryDate || '-';
+    let surgeryType = patientVisits.find(v => v.surgeryType)?.surgeryType || '-';
+    let hospitalName = patientVisits.find(v => v.hospitalName)?.hospitalName || '-';
+
+    let visitsRows = "";
+    patientVisits.forEach((v, idx) => {
+      let statusText = (v.status === 'done') ? '✅ تم الحضور' : (v.status === 'cancelled' ? '❌ ملغى' : '⏳ معلق');
+      let feeText = v.isFree ? 'مجاني 🎁' : (v.fee ? `${parseFloat(v.fee).toLocaleString()} ج.م` : '-');
+
+      visitsRows += `
+        <tr>
+          <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${idx + 1}</td>
+          <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;"><b>${v.date || '-'}</b></td>
+          <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${v.clinic || '-'}</td>
+          <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${v.visitType || '-'}</td>
+          <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${feeText}</td>
+          <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${statusText}</td>
+          <td style="border:1px solid #cbd5e1; padding:6px; font-size:0.85rem;">${v.notes || '-'}</td>
+        </tr>
+      `;
+    });
+
+    let printHTML = `
+      <div style="font-size:1rem; line-height:1.7; color:#000;">
+        <div style="text-align:center; margin-bottom:15px; border-bottom:2px solid #000; padding-bottom:8px;">
+          <h3 style="margin:0; font-size:1.35rem; color:#0f4c5c;">📋 تقرير وسجل زيارات المريض بالعيادات</h3>
+          <p style="margin:2px 0; font-size:0.88rem;">كود المريض: <b>${patientCode || '-'}</b> | تاريخ استخراج الملف: ${new Date().toLocaleDateString('ar-EG')}</p>
+        </div>
+
+        <h4 style="margin-bottom:6px; background:#f1f5f9; padding:6px; border-radius:4px; color:#0f4c5c;">👤 أولاً: البيانات الأساسية للمريض:</h4>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.92rem;">
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>اسم المريض:</b> ${patientName}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>كود المريض:</b> ${patientCode || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>رقم التليفون 1:</b> ${mainInfo.phone1}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>رقم التليفون 2:</b> ${mainInfo.phone2 || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>نوع الجراحة:</b> ${surgeryType}</td>
+            <td style="padding:5px; border:1px solid #e2e8f0;"><b>تاريخ الجراحة:</b> ${surgeryDate} (${hospitalName})</td>
+          </tr>
+        </table>
+
+        <h4 style="margin-top:14px; margin-bottom:6px; background:#f0f9ff; padding:6px; border-radius:4px; color:#0369a1;">🏥 ثانياً: سجل حضور وزيارات العيادات والملاحظات الطبية بالتفصيل:</h4>
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-size:0.88rem;">
+          <thead>
+            <tr style="background:#e0f2fe;">
+              <th style="border:1px solid #cbd5e1; padding:6px;">#</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">تاريخ الزيارة</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">الفرع</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">نوع الزيارة</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">الرسوم</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">حالة الحضور</th>
+              <th style="border:1px solid #cbd5e1; padding:6px;">الملاحظات والتشخيص بالعيادة</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${visitsRows}
+          </tbody>
+        </table>
+
+        <div style="margin-top:35px; display:flex; justify-content:space-between; padding-top:15px; border-top:1px dashed #000; font-size:0.9rem;">
+          <div><b>توقيع إدارة العيادة:</b> ..........................</div>
+          <div><b>استشاري جراحات السمنة (د. بهاء شكري):</b> ..........................</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
+    document.getElementById('pContent').innerHTML = printHTML;
+
+    document.getElementById('printReceiptArea').style.display = 'block';
+    window.print();
+    document.getElementById('printReceiptArea').style.display = 'none';
   }
 
   function handleFreeCheckbox() {
@@ -792,7 +1010,6 @@
     }
   }
 
-  // 🔄 دالة ترحيل الحضور والملاحظات لسيستم Post-Op تلقائياً
   async function syncFollowUpToPostOp(patientCode, patientName, clinicName, visitDate, notes) {
     if (!patientCode) return;
 
@@ -836,7 +1053,6 @@
       const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
       
       if(!error) {
-        // 🔄 الترحيل التلقائي لسيستم الـ Post-Op إذا كانت الحالة متابعة ومسجل لها كود
         if (updatedPayload.visitType === 'متابعة' && updatedPayload.patientCode) {
           await syncFollowUpToPostOp(updatedPayload.patientCode, updatedPayload.name, updatedPayload.clinic, updatedPayload.date, updatedPayload.notes);
         }
