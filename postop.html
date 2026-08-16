@@ -125,6 +125,7 @@
 
   .gallery-preview { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
   .gallery-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+  .doc-badge { display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-top: 4px; }
 
   @media print {
     body * { visibility: hidden !important; }
@@ -307,17 +308,24 @@
       </div>
     </div>
 
-    <!-- Notes Textarea -->
-    <div class="field" style="margin-bottom: 12px;">
-      <label style="font-weight: bold; color: var(--primary);">📋 ملاحظات الأطباء، تقرير المتابعة، والتوصيات القادمة:</label>
-      <textarea id="doctorNotes" rows="3" placeholder="اكتب هنا التوصيات الطبية والغذائية وتاريخ المتابعة القادمة..."></textarea>
+    <!-- Notes & Attached Report Documents (Images / Word / PDF) -->
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 14px; border-radius: 8px; margin-bottom: 14px;">
+      <div class="field" style="margin-bottom: 10px;">
+        <label style="font-weight: bold; color: var(--primary);">📋 ملاحظات الأطباء، تقرير المتابعة، والتوصيات القادمة:</label>
+        <textarea id="doctorNotes" rows="3" placeholder="اكتب هنا التوصيات الطبية والغذائية وتاريخ المتابعة القادمة..."></textarea>
+      </div>
+      <div class="field">
+        <label style="font-weight: bold; color: #0369a1;">📎 إرفاق ملفات تقرير المتابعة (صور 🖼️ / ملفات Word 📝 / ملفات PDF 📄):</label>
+        <input type="file" id="noteDocFiles" accept="image/*,.pdf,.doc,.docx" multiple onchange="handleNoteDocuments(this, 'formNoteDocPreview')" style="background: white;">
+        <div id="formNoteDocPreview" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;"></div>
+      </div>
     </div>
 
-    <!-- Upload Section: Images + Operation Video -->
+    <!-- Upload Section: Labs + Operation Video -->
     <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
       <div class="grid" style="margin-bottom: 0;">
         <div class="field">
-          <label style="font-weight: bold; color: #166534;">📷 رفع صور المتابعة والفحوصات (أكثر من صورة):</label>
+          <label style="font-weight: bold; color: #166534;">📷 رفع صور التحاليل والأشعة (أكثر من صورة):</label>
           <input type="file" id="postLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'formPostLabPreview')" style="background: white;">
           <div id="formPostLabPreview" class="gallery-preview"></div>
         </div>
@@ -372,7 +380,7 @@
             <th>BMI</th>
             <th>الوزن المفقود</th>
             <th>نظام التغذية</th>
-            <th>المرفقات (صور وفيديو)</th>
+            <th>المرفقات (فحوصات وفيديو ومستندات)</th>
             <th>المسؤول عن التسجيل</th>
             <th>الملاحظات</th>
             <th>الإجراءات</th>
@@ -434,16 +442,24 @@
       <div class="field"><label>BMI</label><input type="text" id="mBmi" readonly style="background:#e2e8f0;"></div>
     </div>
 
-    <div class="field" style="margin-bottom: 10px;">
-      <label>الملاحظات والتوصيات:</label>
-      <textarea id="mNotes" rows="3"></textarea>
+    <!-- Edit Notes & Attached Documents -->
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+      <div class="field" style="margin-bottom: 8px;">
+        <label>الملاحظات والتوصيات:</label>
+        <textarea id="mNotes" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label style="font-weight: bold; color: #0369a1;">📎 ملفات ومستندات تقرير المتابعة (صور / Word / PDF):</label>
+        <input type="file" id="mNoteDocFiles" accept="image/*,.pdf,.doc,.docx" multiple onchange="handleNoteDocuments(this, 'modalNoteDocPreview')" style="background: white;">
+        <div id="modalNoteDocPreview" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;"></div>
+      </div>
     </div>
 
     <!-- Modal Uploads -->
     <div style="background: #f0fdf4; border: 1px dashed #86efac; padding: 10px; border-radius: 8px; margin-bottom: 12px;">
       <div class="grid" style="margin-bottom: 0;">
         <div class="field">
-          <label style="font-weight:bold; color:#166534;">📷 صور المتابعة:</label>
+          <label style="font-weight:bold; color:#166534;">📷 صور التحاليل والأشعة:</label>
           <input type="file" id="mPostLabFiles" accept="image/*" multiple onchange="handlePostLabImages(this, 'modalPostLabPreview')" style="background:white; margin-top:4px;">
           <div id="modalPostLabPreview" class="gallery-preview"></div>
         </div>
@@ -542,7 +558,7 @@
   </div>
 </div>
 
-<!-- Modal Image Viewer -->
+<!-- Modal Image & Documents Viewer -->
 <div id="imageViewerModal" class="modal">
   <div class="modal-content" style="max-width: 700px; text-align: center;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
@@ -589,6 +605,8 @@
   let currentActiveDbId = null;
   let currentFormImages = [];
   let currentModalImages = [];
+  let currentFormNoteDocs = [];
+  let currentModalNoteDocs = [];
   let currentFormVideoBase64 = "";
   let currentModalVideoBase64 = "";
 
@@ -769,7 +787,6 @@
     }
   }
 
-  // 🔄 دالة إظهار وإخفاء حقل المرحلة المخصصة عند اختيار "أخرى"
   function toggleCustomMilestone(scope) {
     if (scope === 'form') {
       let val = document.getElementById('visitMilestone').value;
@@ -780,7 +797,45 @@
     }
   }
 
-  // 📷 معالجة صور المتابعة
+  // 📎 معالجة مستندات وملفات الملاحظات (صور / Word / PDF)
+  function handleNoteDocuments(input, previewContainerId) {
+    let container = document.getElementById(previewContainerId);
+    if (input.files) {
+      let isForm = (previewContainerId === 'formNoteDocPreview');
+      if (isForm) currentFormNoteDocs = [];
+      else currentModalNoteDocs = [];
+
+      Array.from(input.files).forEach(file => {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          let fileObj = {
+            name: file.name,
+            type: file.type,
+            data: e.target.result
+          };
+          if (isForm) currentFormNoteDocs.push(fileObj);
+          else currentModalNoteDocs.push(fileObj);
+          renderNoteDocsPreview(isForm ? currentFormNoteDocs : currentModalNoteDocs, previewContainerId);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  function renderNoteDocsPreview(docsArray, containerId) {
+    let container = document.getElementById(containerId);
+    container.innerHTML = '';
+    docsArray.forEach(doc => {
+      let isImg = doc.type.startsWith('image/');
+      let icon = isImg ? '🖼️' : (doc.name.endsWith('.pdf') ? '📄' : '📝');
+      let badge = document.createElement('div');
+      badge.className = 'doc-badge';
+      badge.innerHTML = `<span>${icon} ${doc.name}</span>`;
+      container.appendChild(badge);
+    });
+  }
+
+  // 📷 معالجة صور التحاليل والأشعة
   function handlePostLabImages(input, previewContainerId) {
     let container = document.getElementById(previewContainerId);
     if (input.files) {
@@ -856,7 +911,10 @@
     list.forEach(item => {
       let mediaBtns = [];
       if (item.images && item.images.length > 0) {
-        mediaBtns.push(`<button class="btn btn-info" style="padding:2px 6px; font-size:0.7rem; margin-top:2px;" onclick="viewPostOpImages(${item.dbId})">📂 الصور (${item.images.length})</button>`);
+        mediaBtns.push(`<button class="btn btn-info" style="padding:2px 6px; font-size:0.7rem; margin-top:2px;" onclick="viewPostOpImages(${item.dbId})">📂 الفحوصات (${item.images.length})</button>`);
+      }
+      if (item.noteDocs && item.noteDocs.length > 0) {
+        mediaBtns.push(`<button class="btn btn-success" style="padding:2px 6px; font-size:0.7rem; margin-top:2px;" onclick="viewNoteDocuments(${item.dbId})">📎 مستندات التقرير (${item.noteDocs.length})</button>`);
       }
       if (item.videoData || item.videoUrl) {
         mediaBtns.push(`<button class="btn btn-purple" style="padding:2px 6px; font-size:0.7rem; margin-top:2px;" onclick="viewOperationVideo(${item.dbId})">🎥 فيديو العملية</button>`);
@@ -942,6 +1000,7 @@
       supplementAdherence: document.getElementById('supplementAdherence').value,
       followUpLabs: document.getElementById('followUpLabs').value,
       doctorNotes: document.getElementById('doctorNotes').value,
+      noteDocs: currentFormNoteDocs,
       images: currentFormImages,
       videoData: currentFormVideoBase64,
       videoUrl: document.getElementById('opVideoUrl').value.trim(),
@@ -978,12 +1037,15 @@
     document.getElementById('supplementAdherence').value = '';
     document.getElementById('followUpLabs').value = '';
     document.getElementById('doctorNotes').value = '';
+    document.getElementById('noteDocFiles').value = '';
+    document.getElementById('formNoteDocPreview').innerHTML = '';
     document.getElementById('postLabFiles').value = '';
     document.getElementById('opVideoFile').value = '';
     document.getElementById('opVideoUrl').value = '';
     document.getElementById('formPostLabPreview').innerHTML = '';
     document.getElementById('formVideoPreview').innerText = '';
     currentFormImages = [];
+    currentFormNoteDocs = [];
     currentFormVideoBase64 = "";
   }
 
@@ -1033,6 +1095,9 @@
     document.getElementById('mBmi').value = item.currentBmi || '';
     document.getElementById('mNotes').value = item.doctorNotes || '';
 
+    currentModalNoteDocs = item.noteDocs || [];
+    renderNoteDocsPreview(currentModalNoteDocs, 'modalNoteDocPreview');
+
     currentModalImages = item.images || [];
     renderPreviewImages(currentModalImages, 'modalPostLabPreview');
 
@@ -1080,6 +1145,7 @@
         currentBmi: document.getElementById('mBmi').value,
         weightLost: weightLost,
         doctorNotes: document.getElementById('mNotes').value,
+        noteDocs: currentModalNoteDocs,
         images: currentModalImages,
         videoData: currentModalVideoBase64,
         videoUrl: document.getElementById('mOpVideoUrl').value.trim(),
@@ -1115,7 +1181,7 @@
     document.getElementById('reportModal').style.display = 'none';
   }
 
-  /* 🖨️ توليد وطباعة التقرير الطبي الشامل والمفصل (مطابق لشكل index بدون الجزء المالي) */
+  /* 🖨️ توليد وطباعة التقرير الطبي الشامل والمفصل */
   async function printPostOpPatientReport() {
     let currentPost = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
     if (!currentPost) return;
@@ -1125,7 +1191,6 @@
     let patientName = currentPost.name || '';
     let medicalNotes = document.getElementById('repMedicalText').value.trim();
 
-    // 1. جلب بيانات Pre-Op
     let preOpInfo = { age: '-', weight: currentPost.preOpWeight || '-', height: currentPost.height || '-', bmi: currentPost.currentBmi || '-', mh: '-', labs: '-', opDate: currentPost.opDate || '-', operation: currentPost.operation || '-', hospital: '-' };
     const { data: preOpData } = await supabaseClient.from('preop_records').select('*');
     if (preOpData && patientCode) {
@@ -1135,7 +1200,6 @@
       }
     }
 
-    // 2. جلب سجل حضور العيادات
     let clinicVisitsHTML = '';
     const { data: appData } = await supabaseClient.from('appointments').select('*');
     if (appData) {
@@ -1182,7 +1246,6 @@
       }
     }
 
-    // 3. جلب جميع متابعات المريض من Post-Op
     let postOpVisitsHTML = '';
     let matchedPost = allPostOpRecords.filter(item => (
       (patientCode && item.code && item.code.trim().toLowerCase() === patientCode.toLowerCase()) ||
@@ -1296,9 +1359,9 @@
 
   function viewPostOpImages(dbId) {
     let item = allPostOpRecords.find(a => a.dbId === dbId);
-    if (!item || !item.images || item.images.length === 0) return alert("لا توجد صور مرفقة لهذه الزيارة");
+    if (!item || !item.images || item.images.length === 0) return alert("لا توجد صور فحوصات مرفقة لهذه الزيارة");
 
-    document.getElementById('viewerTitle').innerText = `📂 مستندات وفحوصات: ${item.name} (${item.followUpDate})`;
+    document.getElementById('viewerTitle').innerText = `📂 فحوصات وأشعة: ${item.name} (${item.followUpDate})`;
     let gallery = document.getElementById('viewerGallery');
     gallery.innerHTML = '';
 
@@ -1311,6 +1374,41 @@
           <a href="${imgSrc}" download="postop_lab_${i+1}.png" class="btn btn-secondary" style="display:inline-block; margin-top:8px; padding:4px 12px; font-size:0.8rem; text-decoration:none;">⬇️ تحميل الصورة</a>
         </div>
       `;
+    });
+
+    document.getElementById('imageViewerModal').style.display = 'flex';
+  }
+
+  // 📎 فتح واستعراض مستندات الملاحظات والتقرير (Word / PDF / Images)
+  function viewNoteDocuments(dbId) {
+    let item = allPostOpRecords.find(a => a.dbId === dbId);
+    if (!item || !item.noteDocs || item.noteDocs.length === 0) return alert("لا توجد مستندات تقرير مرفقة لهذه الزيارة");
+
+    document.getElementById('viewerTitle').innerText = `📎 مستندات وملفات تقرير: ${item.name} (${item.followUpDate})`;
+    let gallery = document.getElementById('viewerGallery');
+    gallery.innerHTML = '';
+
+    item.noteDocs.forEach((doc, i) => {
+      let isImg = doc.type && doc.type.startsWith('image/');
+      if (isImg) {
+        gallery.innerHTML += `
+          <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; background: #f8fafc;">
+            <p style="margin-bottom:6px; font-weight:bold; color:var(--primary);">🖼️ ${doc.name}</p>
+            <img src="${doc.data}" style="max-width:100%; max-height:450px; border-radius:6px;">
+            <br>
+            <a href="${doc.data}" download="${doc.name}" class="btn btn-secondary" style="display:inline-block; margin-top:8px; padding:4px 12px; font-size:0.8rem; text-decoration:none;">⬇️ تحميل الصورة</a>
+          </div>
+        `;
+      } else {
+        let icon = doc.name.endsWith('.pdf') ? '📄' : '📝';
+        gallery.innerHTML += `
+          <div style="border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; background: #f8fafc; text-align: right;">
+            <h4 style="color:var(--primary); margin-bottom:6px;">${icon} ${doc.name}</h4>
+            <p style="font-size:0.85rem; color:#64748b; margin-bottom:10px;">ملف مستند مرفق بالتقرير الطبي للمتابعة</p>
+            <a href="${doc.data}" download="${doc.name}" class="btn btn-info" style="display:inline-block; text-decoration:none; padding:6px 14px; font-size:0.85rem;">⬇️ تحميل / فتح المستند (${doc.name.split('.').pop().toUpperCase()})</a>
+          </div>
+        `;
+      }
     });
 
     document.getElementById('imageViewerModal').style.display = 'flex';
