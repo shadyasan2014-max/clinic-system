@@ -225,6 +225,8 @@
         <label>تسجيل حضور العيادة:</label>
         <select id="attendanceStatus" style="font-weight: bold;">
           <option value="حضر بالعيادة" selected>🏢 حضر بالعيادة</option>
+          <option value="متابعة بالمستشفى بعد العملية">🏥 متابعة بالمستشفى بعد العملية</option>
+          <option value="متابعة بالمستشفى">🏥 متابعة بالمستشفى</option>
           <option value="استشارة أونلاين">💻 استشارة أونلاين</option>
           <option value="متابعة هاتفية">📞 متابعة هاتفية</option>
           <option value="لم يحضر (غياب)">❌ لم يحضر (تغيب عن الموعد)</option>
@@ -399,9 +401,11 @@
       <div class="field"><label>اسم المريض</label><input type="text" id="mName"></div>
       <div class="field"><label>تاريخ المتابعة</label><input type="date" id="mFollowUpDate"></div>
       <div class="field">
-        <label>حضور العيادة</label>
+        <label>تسجيل حضور العيادة:</label>
         <select id="mAttendance">
           <option value="حضر بالعيادة">🏢 حضر بالعيادة</option>
+          <option value="متابعة بالمستشفى بعد العملية">🏥 متابعة بالمستشفى بعد العملية</option>
+          <option value="متابعة بالمستشفى">🏥 متابعة بالمستشفى</option>
           <option value="استشارة أونلاين">💻 استشارة أونلاين</option>
           <option value="متابعة هاتفية">📞 متابعة هاتفية</option>
           <option value="لم يحضر (غياب)">❌ لم يحضر (تغيب عن الموعد)</option>
@@ -462,7 +466,7 @@
 <!-- Modal Case Report Generator (📄 تقرير الحالة الطبي المفصل - بدون الجزء المالي) -->
 <div id="reportModal" class="modal">
   <div class="modal-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
       <h3 id="repModalTitle" style="color: var(--primary);">📄 إعداد تقرير وتوصيات المريض الطبية</h3>
       <button onclick="closeReportModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
@@ -491,7 +495,7 @@
 <!-- Modal Audit Logs (سجل الحركة والتعديلات - للآدمن فقط) -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
       <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات متابعات Post-Op (خاص بالإدارة)</h3>
       <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
@@ -1010,7 +1014,6 @@
     document.getElementById('mFollowUpDate').value = item.followUpDate || '';
     document.getElementById('mAttendance').value = item.attendanceStatus || 'حضر بالعيادة';
 
-    // ضبط مرحلة الزيارة في التعديل
     let mSelect = document.getElementById('mVisitMilestone');
     let mCustomBox = document.getElementById('mCustomMilestoneBox');
     let mCustomText = document.getElementById('mCustomMilestoneText');
