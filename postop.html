@@ -232,7 +232,9 @@
       </div>
       <div class="field">
         <label>توقيت / مرحلة الزيارة:</label>
-        <select id="visitMilestone">
+        <select id="visitMilestone" onchange="toggleCustomMilestone('form')">
+          <option value="أول يوم بعد العملية">أول يوم بعد العملية</option>
+          <option value="ثاني يوم بعد العملية">ثاني يوم بعد العملية</option>
           <option value="أسبوع بعد العملية">أسبوع بعد العملية</option>
           <option value="أسبوعين بعد العملية">أسبوعين بعد العملية</option>
           <option value="شهر بعد العملية">شهر بعد العملية</option>
@@ -240,7 +242,12 @@
           <option value="6 شهور بعد العملية">6 شهور بعد العملية</option>
           <option value="سنة بعد العملية">سنة بعد العملية</option>
           <option value="زيارة طارئة / غير مجدولة">زيارة طارئة / غير مجدولة</option>
+          <option value="أخرى">أخرى (تحديد مرحلة مخصصة)...</option>
         </select>
+      </div>
+      <div class="field" id="customMilestoneBox" style="display: none;">
+        <label style="color: var(--accent-gold); font-weight: bold;">✍️ حدد المرحلة / التوقيت المخصص:</label>
+        <input type="text" id="customMilestoneText" placeholder="اكتب التوقيت المخصص هنا...">
       </div>
       <div class="field">
         <label>مرحلة النظام الغذائي الحالية:</label>
@@ -399,6 +406,25 @@
           <option value="متابعة هاتفية">📞 متابعة هاتفية</option>
           <option value="لم يحضر (غياب)">❌ لم يحضر (تغيب عن الموعد)</option>
         </select>
+      </div>
+      <div class="field">
+        <label>توقيت / مرحلة الزيارة:</label>
+        <select id="mVisitMilestone" onchange="toggleCustomMilestone('modal')">
+          <option value="أول يوم بعد العملية">أول يوم بعد العملية</option>
+          <option value="ثاني يوم بعد العملية">ثاني يوم بعد العملية</option>
+          <option value="أسبوع بعد العملية">أسبوع بعد العملية</option>
+          <option value="أسبوعين بعد العملية">أسبوعين بعد العملية</option>
+          <option value="شهر بعد العملية">شهر بعد العملية</option>
+          <option value="3 شهور بعد العملية">3 شهور بعد العملية</option>
+          <option value="6 شهور بعد العملية">6 شهور بعد العملية</option>
+          <option value="سنة بعد العملية">سنة بعد العملية</option>
+          <option value="زيارة طارئة / غير مجدولة">زيارة طارئة / غير مجدولة</option>
+          <option value="أخرى">أخرى (تحديد مرحلة مخصصة)...</option>
+        </select>
+      </div>
+      <div class="field" id="mCustomMilestoneBox" style="display: none;">
+        <label style="color: var(--accent-gold); font-weight: bold;">✍️ حدد المرحلة المخصصة:</label>
+        <input type="text" id="mCustomMilestoneText" placeholder="اكتب التوقيت المخصص هنا...">
       </div>
       <div class="field"><label>الوزن الحالي</label><input type="number" id="mCurWeight" oninput="calculateModalPostBMI()"></div>
       <div class="field"><label>BMI</label><input type="text" id="mBmi" readonly style="background:#e2e8f0;"></div>
@@ -739,6 +765,17 @@
     }
   }
 
+  // 🔄 دالة إظهار وإخفاء حقل المرحلة المخصصة عند اختيار "أخرى"
+  function toggleCustomMilestone(scope) {
+    if (scope === 'form') {
+      let val = document.getElementById('visitMilestone').value;
+      document.getElementById('customMilestoneBox').style.display = (val === 'أخرى') ? 'flex' : 'none';
+    } else {
+      let val = document.getElementById('mVisitMilestone').value;
+      document.getElementById('mCustomMilestoneBox').style.display = (val === 'أخرى') ? 'flex' : 'none';
+    }
+  }
+
   // 📷 معالجة صور المتابعة
   function handlePostLabImages(input, previewContainerId) {
     let container = document.getElementById(previewContainerId);
@@ -873,6 +910,13 @@
     let name = document.getElementById('pName').value.trim();
     if (!code || !name) return alert("يرجى كتابة كود واسم المريض");
 
+    let milestoneSelect = document.getElementById('visitMilestone').value;
+    let finalMilestone = milestoneSelect;
+    if (milestoneSelect === 'أخرى') {
+      let customVal = document.getElementById('customMilestoneText').value.trim();
+      finalMilestone = customVal ? `أخرى (${customVal})` : 'أخرى';
+    }
+
     let payload = {
       code,
       name,
@@ -882,7 +926,7 @@
       opDate: document.getElementById('pOpDate').value,
       followUpDate: document.getElementById('followUpDate').value,
       attendanceStatus: document.getElementById('attendanceStatus').value,
-      visitMilestone: document.getElementById('visitMilestone').value,
+      visitMilestone: finalMilestone,
       dietStage: document.getElementById('dietStage').value,
       preOpWeight: document.getElementById('preOpWeight').value,
       height: document.getElementById('pHeight').value,
@@ -922,6 +966,9 @@
     document.getElementById('currentWeight').value = '';
     document.getElementById('currentBmi').innerText = '0.0';
     document.getElementById('weightLostVal').innerText = '0 كجم';
+    document.getElementById('visitMilestone').value = 'أول يوم بعد العملية';
+    document.getElementById('customMilestoneText').value = '';
+    document.getElementById('customMilestoneBox').style.display = 'none';
     document.getElementById('vitals').value = '';
     document.getElementById('complaints').value = '';
     document.getElementById('supplementAdherence').value = '';
@@ -962,6 +1009,23 @@
     document.getElementById('mName').value = item.name || '';
     document.getElementById('mFollowUpDate').value = item.followUpDate || '';
     document.getElementById('mAttendance').value = item.attendanceStatus || 'حضر بالعيادة';
+
+    // ضبط مرحلة الزيارة في التعديل
+    let mSelect = document.getElementById('mVisitMilestone');
+    let mCustomBox = document.getElementById('mCustomMilestoneBox');
+    let mCustomText = document.getElementById('mCustomMilestoneText');
+
+    if (item.visitMilestone && item.visitMilestone.startsWith('أخرى')) {
+      mSelect.value = 'أخرى';
+      mCustomBox.style.display = 'flex';
+      let extracted = item.visitMilestone.replace('أخرى (', '').replace(')', '');
+      mCustomText.value = (extracted !== 'أخرى') ? extracted : '';
+    } else {
+      mSelect.value = item.visitMilestone || 'أول يوم بعد العملية';
+      mCustomBox.style.display = 'none';
+      mCustomText.value = '';
+    }
+
     document.getElementById('mCurWeight').value = item.currentWeight || '';
     document.getElementById('mBmi').value = item.currentBmi || '';
     document.getElementById('mNotes').value = item.doctorNotes || '';
@@ -994,6 +1058,13 @@
       let preWt = parseFloat(item.preOpWeight) || 0;
       let weightLost = (preWt > 0 && curWt > 0) ? (preWt - curWt).toFixed(1) : item.weightLost;
 
+      let milestoneSelect = document.getElementById('mVisitMilestone').value;
+      let finalMilestone = milestoneSelect;
+      if (milestoneSelect === 'أخرى') {
+        let customVal = document.getElementById('mCustomMilestoneText').value.trim();
+        finalMilestone = customVal ? `أخرى (${customVal})` : 'أخرى';
+      }
+
       let updatedPayload = {
         ...item,
         docSurg: document.getElementById('mDocSurg').value,
@@ -1001,6 +1072,7 @@
         name: document.getElementById('mName').value.trim(),
         followUpDate: document.getElementById('mFollowUpDate').value,
         attendanceStatus: document.getElementById('mAttendance').value,
+        visitMilestone: finalMilestone,
         currentWeight: curWt,
         currentBmi: document.getElementById('mBmi').value,
         weightLost: weightLost,
@@ -1188,7 +1260,6 @@
         </table>
     `;
 
-    // دمج الجداول الإضافية إذا كان التقرير مفصلاً
     if (repType === 'detailed_clinical') {
       if (clinicVisitsHTML) printHTML += clinicVisitsHTML;
       if (postOpVisitsHTML) printHTML += postOpVisitsHTML;
