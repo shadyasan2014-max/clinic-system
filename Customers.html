@@ -1,14 +1,5 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 14px; cursor: pointer;">
-  <div class="logo-box">
-    <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
-  </div>
-  <div class="header-text">
-    <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-    <p>العودة للشاشة الرئيسية</p>
-  </div>
-</a>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,7 +66,16 @@
     justify-content: space-between;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
   }
-  .brand-logo { display: flex; align-items: center; gap: 16px; }
+  .brand-logo { 
+    display: flex; 
+    align-items: center; 
+    gap: 16px; 
+    text-decoration: none; 
+    color: inherit; 
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .brand-logo:hover { opacity: 0.9; }
   .logo-box {
     width: 65px;
     height: 65px;
@@ -162,9 +162,9 @@
 </div>
 
 <div class="container" id="mainContainer">
-  <!-- Header Branding with Logo -->
+  <!-- Header Branding with Clickable Logo to Home -->
   <header>
-    <div class="brand-logo">
+    <a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية (Home)">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -172,7 +172,7 @@
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
         <p>نظام إدارة وتخزين بيانات العملاء والحسابات</p>
       </div>
-    </div>
+    </a>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
       <button onclick="openLogsModal()" id="auditLogsBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display:none;">📜 سجل الحركة</button>
@@ -411,7 +411,7 @@
   </div>
 </div>
 
-<!-- Modal Invoice Generator (الفاتورة) -->
+<!-- Modal Invoice Generator -->
 <div id="invoiceModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
@@ -461,7 +461,7 @@
     </div>
 
     <!-- Invoice Summary Box -->
-    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-15px 0;">
+    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px;">
       <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
         <span>المبلغ الصافي للبنود:</span>
         <b id="invSubtotalVal">0 ج.م</b>
@@ -480,7 +480,7 @@
   </div>
 </div>
 
-<!-- Modal Case Report Generator (📄 تقرير الحالة الشامل والمفصل) -->
+<!-- Modal Case Report Generator -->
 <div id="reportModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
@@ -514,7 +514,7 @@
   </div>
 </div>
 
-<!-- Modal Audit Logs (خاص بالآدمن فقط) -->
+<!-- Modal Audit Logs (Admin Only) -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
@@ -933,7 +933,7 @@
     let c = customersList.find(item => item.dbId === dbId);
     if(!c) return;
 
-    let confirmDelete = confirm(`⚠️ هل أنت تأكد تماماً من حذف العميل: "${c.name}" (كود: ${c.code}) نهائياً من السيستم؟\nلا يمكن التراجع عن هذه الخطوة!`);
+    let confirmDelete = confirm(`⚠️ هل أنت متأكد تماماً من حذف العميل: "${c.name}" (كود: ${c.code}) نهائياً من السيستم؟\nلا يمكن التراجع عن هذه الخطوة!`);
     
     if (confirmDelete) {
       const { error } = await supabaseClient.from('customers').delete().eq('id', dbId);
@@ -1209,7 +1209,6 @@
     }
   }
 
-  /* 📄 دالة طباعة التقرير الشامل والمفصل مع سحب حضور العيادات ومتابعات Post-Op */
   async function printPatientCaseReport() {
     let c = customersList.find(item => item.dbId === currentActiveDbId);
     if(!c) return;
@@ -1228,7 +1227,7 @@
       }
     }
 
-    // 2. جلب سجل حضور العيادات من جدول appointments
+    // 2. جلب سجل حضور العيادات
     let clinicVisitsHTML = '';
     const { data: appData } = await supabaseClient.from('appointments').select('*');
     if (appData) {
@@ -1275,7 +1274,7 @@
       }
     }
 
-    // 3. جلب سجل متابعات ما بعد العملية من جدول postop_records
+    // 3. جلب سجل متابعات ما بعد العملية
     let postOpVisitsHTML = '';
     const { data: postData } = await supabaseClient.from('postop_records').select('*');
     if (postData) {
@@ -1363,12 +1362,10 @@
         </table>
     `;
 
-    // دمج جدول حضور العيادات
     if (repType === 'detailed_clinical' && clinicVisitsHTML) {
       printHTML += clinicVisitsHTML;
     }
 
-    // دمج جدول متابعات Post-Op
     if (repType === 'detailed_clinical' && postOpVisitsHTML) {
       printHTML += postOpVisitsHTML;
     }
