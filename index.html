@@ -449,6 +449,12 @@
   function applyRolePermissions() {
     let role = currentUser.role;
 
+    // 🔒 إظهار شريط الإحصائيات الحية للآدمن (Admin) فقط
+    let statsGrid = document.querySelector('.stats-grid');
+    if (statsGrid) {
+      statsGrid.style.display = (role === 'admin') ? 'grid' : 'none';
+    }
+
     if (role === 'admin' || role === 'accountant') {
       document.getElementById('cardAccounts').style.display = 'flex';
       document.getElementById('statCustomers').style.display = 'flex';
