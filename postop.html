@@ -1,14 +1,5 @@
 <!DOCTYPE html>
-
-<a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 14px; cursor: pointer;">
-  <div class="logo-box">
-    <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
-  </div>
-  <div class="header-text">
-    <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-    <p>العودة للشاشة الرئيسية</p>
-  </div>
-</a>
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,6 +19,7 @@
     --success: #16a34a;
     --warning: #ca8a04;
     --danger: #dc2626;
+    --purple: #7c3aed;
   }
   
   * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
@@ -81,7 +73,16 @@
     flex-wrap: wrap;
     gap: 12px;
   }
-  .brand-logo { display: flex; align-items: center; gap: 14px; }
+  .brand-logo { 
+    display: flex; 
+    align-items: center; 
+    gap: 14px; 
+    text-decoration: none; 
+    color: inherit; 
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .brand-logo:hover { opacity: 0.9; }
   .logo-box {
     width: 55px;
     height: 55px;
@@ -167,9 +168,9 @@
 </div>
 
 <div class="container" id="mainContainer">
-  <!-- Header -->
+  <!-- Header with Clickable Logo -->
   <header>
-    <div class="brand-logo">
+    <a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية (Home)">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -177,7 +178,7 @@
         <h1>د. بهاء شكري - نظام متابعة ما بعد العملية (Post Operative)</h1>
         <p>سجل المتابعات الإكلينيكية، التغذية العلاجية، وحضور العيادة</p>
       </div>
-    </div>
+    </a>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
       <button onclick="openLogsModal()" id="auditLogsBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: none;">📜 سجل الحركة</button>
@@ -806,7 +807,6 @@
     }
   }
 
-  // 📎 معالجة مستندات وملفات الملاحظات (صور / Word / PDF)
   function handleNoteDocuments(input, previewContainerId) {
     let container = document.getElementById(previewContainerId);
     if (input.files) {
@@ -835,7 +835,7 @@
     let container = document.getElementById(containerId);
     container.innerHTML = '';
     docsArray.forEach(doc => {
-      let isImg = doc.type.startsWith('image/');
+      let isImg = doc.type && doc.type.startsWith('image/');
       let icon = isImg ? '🖼️' : (doc.name.endsWith('.pdf') ? '📄' : '📝');
       let badge = document.createElement('div');
       badge.className = 'doc-badge';
@@ -844,7 +844,6 @@
     });
   }
 
-  // 📷 معالجة صور التحاليل والأشعة
   function handlePostLabImages(input, previewContainerId) {
     let container = document.getElementById(previewContainerId);
     if (input.files) {
@@ -865,7 +864,6 @@
     }
   }
 
-  // 🎥 معالجة ملف فيديو العملية
   function handleOpVideo(input, previewTextId) {
     let previewEl = document.getElementById(previewTextId);
     if (input.files && input.files[0]) {
@@ -1173,7 +1171,6 @@
     }
   }
 
-  /* 📄 إعداد وفتح نافذة التقرير الطبي من شيت Post-Op */
   function openReportModal(dbId) {
     let item = allPostOpRecords.find(a => a.dbId === dbId);
     if (!item) return;
@@ -1190,7 +1187,6 @@
     document.getElementById('reportModal').style.display = 'none';
   }
 
-  /* 🖨️ توليد وطباعة التقرير الطبي الشامل والمفصل */
   async function printPostOpPatientReport() {
     let currentPost = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
     if (!currentPost) return;
@@ -1388,7 +1384,6 @@
     document.getElementById('imageViewerModal').style.display = 'flex';
   }
 
-  // 📎 فتح واستعراض مستندات الملاحظات والتقرير (Word / PDF / Images)
   function viewNoteDocuments(dbId) {
     let item = allPostOpRecords.find(a => a.dbId === dbId);
     if (!item || !item.noteDocs || item.noteDocs.length === 0) return alert("لا توجد مستندات تقرير مرفقة لهذه الزيارة");
@@ -1427,7 +1422,6 @@
     document.getElementById('imageViewerModal').style.display = 'none';
   }
 
-  /* 🎥 مشغل وعارض فيديو العملية */
   function viewOperationVideo(dbId) {
     let item = allPostOpRecords.find(a => a.dbId === dbId);
     if (!item || (!item.videoData && !item.videoUrl)) return alert("لا يوجد فيديو مسجل لهذه العملية");
