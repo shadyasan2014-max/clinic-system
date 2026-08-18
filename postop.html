@@ -298,23 +298,23 @@
       </div>
     </div>
 
-    <!-- Clinical Details -->
-    <div class="grid">
+   <!-- Clinical Details (Multi-line Textareas) -->
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
       <div class="field">
         <label>الضغط والنبض والسكر:</label>
-        <input type="text" id="vitals" placeholder="BP: 120/80, Pulse: 75...">
+        <textarea id="vitals" rows="2" placeholder="BP: 120/80, Pulse: 75..."></textarea>
       </div>
       <div class="field">
         <label>الشكاوى والأعراض (إن وجدت):</label>
-        <input type="text" id="complaints" placeholder="غثيان، حموضة، إمساك، دوخة...">
+        <textarea id="complaints" rows="2" placeholder="غثيان، حموضة، إمساك، دوخة..."></textarea>
       </div>
       <div class="field">
         <label>الالتزام بالفيتامينات والبروتين والسوائل:</label>
-        <input type="text" id="supplementAdherence" placeholder="ملتزم بالفيتامينات وشرب 2 لتر مياه...">
+        <textarea id="supplementAdherence" rows="2" placeholder="ملتزم بالفيتامينات وشرب 2 لتر مياه..."></textarea>
       </div>
       <div class="field">
         <label>فحوصات وتحاليل المتابعة:</label>
-        <input type="text" id="followUpLabs" placeholder="CBC, Ferritin, Vit D, B12...">
+        <textarea id="followUpLabs" rows="2" placeholder="CBC, Ferritin, Vit D, B12..."></textarea>
       </div>
     </div>
 
