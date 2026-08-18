@@ -97,7 +97,12 @@
   .modal-content { background: white; padding: 26px; border-radius: 14px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
   
   .followup-fields { background-color: #f0fdf4; border: 1px dashed #86efac; padding: 16px; border-radius: 8px; margin-top: 12px; }
-  .img-preview { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; display: none; background: #f8fafc; }
+  
+  /* Attachment Gallery & Badges */
+  .files-preview-container { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .file-item-card { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+  .file-item-card img { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; }
+  .file-item-card .remove-btn { color: var(--danger); background: none; border: none; font-size: 1.1rem; cursor: pointer; margin-right: 4px; }
 
   .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
 
@@ -241,7 +246,7 @@
           <th>نوع الزيارة / الكود</th>
           <th>مبلغ التحصيل</th>
           <th>حالة الحضور</th>
-          <th>الإجراءات والعمليات</th>
+          <th>الإجراءات والمرفقات</th>
         </tr>
       </thead>
       <tbody id="appointmentsTable">
@@ -255,7 +260,7 @@
     <div class="card-title">🔍 البحث الشامل والأرشيف (البحث في جميع العيادات والتواريخ السابقة)</div>
     <div class="grid">
       <div class="field" style="grid-column: span 2;">
-        <label>ابحث باسم المريض أو رقم التليفون أو الكود لاستدعاء سجل الكشوفات والملاحظات والروشتات وتعديلها:</label>
+        <label>ابحث باسم المريض أو رقم التليفون أو الكود لاستدعاء سجل الكشوفات والملاحظات والمستندات وتعديلها:</label>
         <div style="display: flex; gap: 10px;">
           <input type="text" id="globalSearchInput" placeholder="اكتب الاسم، التليفون، أو الكود هنا..." style="flex: 1;" onkeypress="if(event.key==='Enter') globalSearchArchive()">
           <button class="btn btn-secondary" style="width: auto; padding: 10px 20px;" onclick="globalSearchArchive()">🔍 بحث في الأرشيف</button>
@@ -281,7 +286,7 @@
               <th>تاريخ العملية</th>
               <th>الرسوم</th>
               <th>الملاحظات الطبية</th>
-              <th>الروشتة</th>
+              <th>المرفقات والروشتة</th>
               <th>الإجراءات والطباعة</th>
             </tr>
           </thead>
@@ -371,25 +376,25 @@
       <textarea id="visitNotes" rows="3" placeholder="اكتب التشخيص، الشكوى، التعليمات الطبية، أو خطة العلاج هنا..."></textarea>
     </div>
 
-    <!-- File Attachment -->
-    <div class="field" style="margin-top: 16px;">
-      <label>📷 إرفاق / تعديل صورة (ورقة الكشف / الروشتة / التقارير)</label>
-      <input type="file" id="visitPaperImg" accept="image/*" onchange="previewImg(this, 'paperImgPrev')">
-      <img id="paperImgPrev" class="img-preview">
+    <!-- 📎 Multi-format File Attachments (Images, PDF, Word, etc.) -->
+    <div class="field" style="margin-top: 16px; background: #f8fafc; border: 1px dashed var(--border); padding: 14px; border-radius: 8px;">
+      <label style="font-weight: bold; color: var(--primary);">📎 إرفاق ملفات ومستندات الكشف (صور 🖼️ / ملفات PDF 📄 / ملفات Word 📝 / أي ملفات أخرى):</label>
+      <input type="file" id="visitPaperFiles" accept="image/*,.pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onchange="handleVisitFiles(this)" style="background: white; margin-top: 4px;">
+      <div id="modalFilesPreview" class="files-preview-container"></div>
     </div>
 
     <button class="btn btn-success" style="width: 100%; margin-top: 20px;" onclick="confirmCheckIn()">💾 حفظ وتأكيد الحضور أونلاين</button>
   </div>
 </div>
 
-<!-- Image Viewer Modal -->
-<div id="imageViewerModal" class="modal">
-  <div class="modal-content" style="text-align: center;">
+<!-- Modal Attachments Viewer (مستعرض الصور والمستندات) -->
+<div id="attachmentsViewerModal" class="modal">
+  <div class="modal-content" style="max-width: 750px; text-align: center;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 style="color: var(--primary);">🖼️ ورقة الكشف / الروشتة المرفقة</h3>
-      <button onclick="closeImageViewer()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+      <h3 id="attachmentsViewerTitle" style="color: var(--primary);">📂 مستندات وروشتات الكشف</h3>
+      <button onclick="closeAttachmentsViewer()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
-    <img id="viewerImage" src="" style="max-width: 100%; max-height: 70vh; border-radius: 8px; border: 1px solid var(--border);">
+    <div id="attachmentsGalleryBox" style="display: flex; flex-direction: column; gap: 15px; max-height: 70vh; overflow-y: auto; padding: 10px;"></div>
   </div>
 </div>
 
@@ -419,7 +424,7 @@
   let availableClinics = ["حلوان", "المهندسين", "مصر الجديدة", "اسكندرية"];
   let allAppointments = [];
   let currentCheckInId = null;
-  let currentUploadedImg = "";
+  let currentUploadedFiles = []; // قائمة الملفات والمستندات للكشف الحالي
   let lastSearchResults = [];
 
   window.onload = function() {
@@ -567,10 +572,16 @@
         visitTypeDisplay += `<br><small style="color:#15803d; font-weight:bold;">العملية: ${app.surgeryDate}</small>`;
       }
 
+      // دعم المرفقات المتعددة سواء بالنظام الجديد (files) أو القديم (paperImg)
+      let filesCount = (app.files && app.files.length > 0) ? app.files.length : (app.paperImg ? 1 : 0);
+      let attachBtn = filesCount > 0 
+        ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewAttachments(${app.dbId})">📂 المرفقات (${filesCount})</button>` 
+        : '';
+
       let actionBtns = `
         <div class="action-btns">
           ${app.status === 'pending' ? `<button class="btn btn-success" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✅ حضور وكشف</button>` : ''}
-          ${app.paperImg ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` : ''}
+          ${attachBtn}
           <button class="btn btn-warning" style="padding: 5px 10px; font-size:0.8rem;" onclick="openCheckInModal(${app.dbId})">✏️ تعديل الزيارة</button>
           ${app.status !== 'cancelled' ? `<button class="btn btn-danger" style="padding: 5px 10px; font-size:0.8rem;" onclick="cancelAppointment(${app.dbId})">❌ إلغاء</button>` : `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="restoreAppointment(${app.dbId})">🔄 تفعيل</button>`}
         </div>
@@ -625,7 +636,7 @@
         fetchAppointmentsFromSupabase();
       }
     } else {
-      let payload = { name, phone1, phone2, clinic, date, visitType, surgeryDate, patientCode, status: "pending", paperImg: "", notes: "", surgeryType: "", hospitalName: "", fee: 0, isFree: false };
+      let payload = { name, phone1, phone2, clinic, date, visitType, surgeryDate, patientCode, status: "pending", files: [], paperImg: "", notes: "", surgeryType: "", hospitalName: "", fee: 0, isFree: false };
       const { error } = await supabaseClient.from('appointments').insert([{ data: payload }]);
       if(!error) {
         alert("✅ تم حفظ الحجز أونلاين بنجاح!");
@@ -726,8 +737,9 @@
       tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#dc2626; padding:15px;">لا توجد أي نتائج مطابقة لهذا المريض في الأرشيف</td></tr>';
     } else {
       lastSearchResults.forEach(app => {
-        let imgBtn = app.paperImg 
-          ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size:0.75rem;" onclick="viewImage('${app.paperImg}')">🖼️ الروشتة</button>` 
+        let filesCount = (app.files && app.files.length > 0) ? app.files.length : (app.paperImg ? 1 : 0);
+        let attachBtn = filesCount > 0 
+          ? `<button class="btn btn-secondary" style="padding: 4px 8px; font-size:0.75rem;" onclick="viewAttachments(${app.dbId})">📂 المرفقات (${filesCount})</button>` 
           : '<span style="color:#94a3b8; font-size:0.8rem;">لا توجد</span>';
 
         let feeText = app.isFree ? '<span class="free-badge">مجاني 🎁</span>' : (app.fee ? `${parseFloat(app.fee).toLocaleString()} ج.م` : '-');
@@ -742,7 +754,7 @@
             <td>${app.surgeryDate || '-'}</td>
             <td>${feeText}</td>
             <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;" title="${app.notes || ''}">${app.notes || '-'}</td>
-            <td>${imgBtn}</td>
+            <td>${attachBtn}</td>
             <td>
               <div style="display:flex; gap:4px; flex-wrap:wrap;">
                 <button class="btn btn-info" style="padding: 4px 8px; font-size:0.75rem;" onclick="printSinglePatientFile('${app.patientCode || ''}', '${app.name}')">🖨️ طباعة ملف الحالة</button>
@@ -757,7 +769,7 @@
     box.style.display = 'block';
   }
 
-  /* 🖨️ 1. دالة طباعة نتائج البحث كشف تجميعي شامل */
+  /* 🖨️ 1. طباعة نتائج البحث كشف كامل */
   function printSearchResultsTable() {
     if (!lastSearchResults || lastSearchResults.length === 0) {
       alert("⚠️ لا توجد نتائج بحث للطباعة!");
@@ -839,9 +851,8 @@
     document.getElementById('printReceiptArea').style.display = 'none';
   }
 
-  /* 🖨️ 2. دالة طباعة تقرير ملف الحالة المفصل بكل الزيارات السابقة والملاحظات */
+  /* 🖨️ 2. طباعة تقرير ملف الحالة المفصل */
   async function printSinglePatientFile(patientCode, patientName) {
-    // جلب كافة زيارات هذا المريض في كافة العيادات
     let patientVisits = allAppointments.filter(app => (
       (patientCode && app.patientCode && app.patientCode.trim().toLowerCase() === patientCode.trim().toLowerCase()) ||
       (app.name && app.name.trim().toLowerCase() === patientName.trim().toLowerCase())
@@ -852,7 +863,6 @@
       return;
     }
 
-    // فرز الزيارات حسب التاريخ
     patientVisits.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     let mainInfo = patientVisits[0];
@@ -945,12 +955,73 @@
     }
   }
 
+  // 📎 معالجة ورفع الملفات المتعددة (صور / PDF / Word / مستندات)
+  function handleVisitFiles(input) {
+    if (input.files) {
+      Array.from(input.files).forEach(file => {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          currentUploadedFiles.push({
+            name: file.name,
+            type: file.type,
+            data: e.target.result
+          });
+          renderModalFilesPreview();
+        };
+        reader.readAsDataURL(file);
+      });
+      input.value = '';
+    }
+  }
+
+  function renderModalFilesPreview() {
+    let container = document.getElementById('modalFilesPreview');
+    container.innerHTML = '';
+    
+    currentUploadedFiles.forEach((file, index) => {
+      let isImg = file.type && file.type.startsWith('image/');
+      let icon = isImg ? '🖼️' : (file.name.endsWith('.pdf') ? '📄' : '📝');
+      
+      let card = document.createElement('div');
+      card.className = 'file-item-card';
+      
+      let previewContent = isImg 
+        ? `<img src="${file.data}" alt="${file.name}">` 
+        : `<span>${icon}</span>`;
+
+      card.innerHTML = `
+        ${previewContent}
+        <span style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${file.name}">${file.name}</span>
+        <button type="button" class="remove-btn" onclick="removeUploadedFile(${index})" title="حذف الملف">✖</button>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function removeUploadedFile(index) {
+    currentUploadedFiles.splice(index, 1);
+    renderModalFilesPreview();
+  }
+
   function openCheckInModal(dbId) {
     currentCheckInId = dbId;
     let app = allAppointments.find(a => a.dbId === dbId);
     if(!app) return;
 
-    currentUploadedImg = app.paperImg || "";
+    // تهيئة قائمة الملفات
+    if (app.files && Array.isArray(app.files)) {
+      currentUploadedFiles = [...app.files];
+    } else if (app.paperImg) {
+      currentUploadedFiles = [{
+        name: 'روشتة / ورقة كشف',
+        type: 'image/png',
+        data: app.paperImg
+      }];
+    } else {
+      currentUploadedFiles = [];
+    }
+    renderModalFilesPreview();
+
     document.getElementById('modalPatientName').value = app.name || '';
     document.getElementById('modalPatientCode').value = app.patientCode || '';
     document.getElementById('modalPhone1').value = app.phone1 || '';
@@ -974,16 +1045,6 @@
     handleFreeCheckbox();
 
     toggleModalFollowUpFields();
-
-    let prevImg = document.getElementById('paperImgPrev');
-    if(app.paperImg) {
-      prevImg.src = app.paperImg;
-      prevImg.style.display = 'block';
-    } else {
-      prevImg.style.display = 'none';
-    }
-    document.getElementById('visitPaperImg').value = '';
-    
     document.getElementById('checkInModal').style.display = 'flex';
   }
 
@@ -998,19 +1059,7 @@
     document.getElementById('modalPatientCodeBox').style.display = isFollowUp ? 'block' : 'none';
   }
 
-  function previewImg(input, targetId) {
-    if (input.files && input.files[0]) {
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        document.getElementById(targetId).src = e.target.result;
-        document.getElementById(targetId).style.display = 'block';
-        currentUploadedImg = e.target.result;
-      }
-      reader.readAsDataURL(input.files[0]);
-    }
-  }
-
-  async function syncFollowUpToPostOp(patientCode, patientName, clinicName, visitDate, notes) {
+  async function syncFollowUpToPostOp(patientCode, patientName, clinicName, visitDate, notes, files) {
     if (!patientCode) return;
 
     let payload = {
@@ -1022,6 +1071,7 @@
       attendanceStatus: 'حضر بالعيادة',
       visitMilestone: `زيارة عيادة (${clinicName})`,
       doctorNotes: `[ملاحظات كشف العيادة - فرع ${clinicName}]: ${notes || 'تم الحضور للكشف الدوري'}`,
+      noteDocs: files || [],
       recordedBy: 'نظام حجوزات العيادة'
     };
 
@@ -1048,16 +1098,20 @@
       updatedPayload.isFree = document.getElementById('isFreeVisit').checked;
       updatedPayload.fee = updatedPayload.isFree ? 0 : (parseFloat(document.getElementById('visitFee').value) || 0);
 
-      if(currentUploadedImg) updatedPayload.paperImg = currentUploadedImg;
+      // حفظ مصفوفة الملفات المرفوعة
+      updatedPayload.files = currentUploadedFiles;
+      // التوافق مع الأنظمة القديمة بحفظ أول صورة إن وجدت
+      let firstImg = currentUploadedFiles.find(f => f.type && f.type.startsWith('image/'));
+      updatedPayload.paperImg = firstImg ? firstImg.data : "";
 
       const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
       
       if(!error) {
         if (updatedPayload.visitType === 'متابعة' && updatedPayload.patientCode) {
-          await syncFollowUpToPostOp(updatedPayload.patientCode, updatedPayload.name, updatedPayload.clinic, updatedPayload.date, updatedPayload.notes);
+          await syncFollowUpToPostOp(updatedPayload.patientCode, updatedPayload.name, updatedPayload.clinic, updatedPayload.date, updatedPayload.notes, currentUploadedFiles);
         }
 
-        alert("✅ تم تأكيد حضور الكشف بنجاح وترحيل الملاحظات للتقرير الطبي!");
+        alert("✅ تم تأكيد حضور الكشف وحفظ المرفقات بنجاح!");
         closeModal();
         fetchAppointmentsFromSupabase();
         
@@ -1068,13 +1122,53 @@
     }
   }
 
-  function viewImage(imgSrc) {
-    document.getElementById('viewerImage').src = imgSrc;
-    document.getElementById('imageViewerModal').style.display = 'flex';
+  // 📂 استعراض وتنزيل المستندات والصور المرفقة
+  function viewAttachments(dbId) {
+    let app = allAppointments.find(a => a.dbId === dbId);
+    if(!app) return;
+
+    let filesList = [];
+    if (app.files && Array.isArray(app.files) && app.files.length > 0) {
+      filesList = app.files;
+    } else if (app.paperImg) {
+      filesList = [{ name: 'ورقة الكشف / الروشتة', type: 'image/png', data: app.paperImg }];
+    }
+
+    if(filesList.length === 0) return alert("لا توجد ملفات مرفقة لهذه الزيارة");
+
+    document.getElementById('attachmentsViewerTitle').innerText = `📂 مستندات كشف: ${app.name} (${app.date})`;
+    let gallery = document.getElementById('attachmentsGalleryBox');
+    gallery.innerHTML = '';
+
+    filesList.forEach((file, i) => {
+      let isImg = file.type && file.type.startsWith('image/');
+      if (isImg) {
+        gallery.innerHTML += `
+          <div style="border: 1px solid #cbd5e1; padding: 12px; border-radius: 8px; background: #f8fafc;">
+            <p style="margin-bottom:6px; font-weight:bold; color:var(--primary);">🖼️ ${file.name || 'صورة #' + (i+1)}</p>
+            <img src="${file.data}" style="max-width:100%; max-height:420px; border-radius:6px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+            <br>
+            <a href="${file.data}" download="${file.name || 'prescription_' + (i+1) + '.png'}" class="btn btn-secondary" style="display:inline-block; margin-top:8px; padding:5px 14px; font-size:0.82rem; text-decoration:none;">⬇️ تحميل الصورة</a>
+          </div>
+        `;
+      } else {
+        let icon = (file.name && file.name.endsWith('.pdf')) ? '📄' : '📝';
+        let ext = file.name ? file.name.split('.').pop().toUpperCase() : 'DOC';
+        gallery.innerHTML += `
+          <div style="border: 1px solid #cbd5e1; padding: 16px; border-radius: 8px; background: #f8fafc; text-align: right;">
+            <h4 style="color:var(--primary); margin-bottom:6px;">${icon} ${file.name}</h4>
+            <p style="font-size:0.85rem; color:#64748b; margin-bottom:10px;">ملف مستند مرفق بزيارة العيادة</p>
+            <a href="${file.data}" download="${file.name}" class="btn btn-info" style="display:inline-block; text-decoration:none; padding:6px 14px; font-size:0.85rem;">⬇️ تحميل / فتح المستند (${ext})</a>
+          </div>
+        `;
+      }
+    });
+
+    document.getElementById('attachmentsViewerModal').style.display = 'flex';
   }
 
-  function closeImageViewer() {
-    document.getElementById('imageViewerModal').style.display = 'none';
+  function closeAttachmentsViewer() {
+    document.getElementById('attachmentsViewerModal').style.display = 'none';
   }
 </script>
 </body>
