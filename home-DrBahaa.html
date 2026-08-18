@@ -205,7 +205,7 @@
 <!-- Lock Screen for Authorization -->
 <div id="authOverlay">
   <div class="auth-box">
-    <div class="auth-logo" onclick="window.location.reload()">
+    <div class="auth-logo" onclick="window.location.href='home.html'">
       <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
     </div>
     <h2>🩺 منظومة د. بهاء شكري الطبية</h2>
@@ -218,9 +218,9 @@
 </div>
 
 <div class="container" id="mainContainer">
-  <!-- Header with Clickable Home Logo -->
+  <!-- Header with Link to home.html -->
   <header>
-    <a href="index.html" class="brand-logo" title="الرجوع للرئيسية">
+    <a href="home.html" class="brand-logo" title="الرجوع للبوابة الرئيسية">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -310,7 +310,7 @@
     </a>
 
     <!-- 4. Accounts & Customer Data (خاص بالآدمن والحسابات فقط) -->
-    <a id="cardAccounts" href="accounts.html" class="portal-card" style="display: none;">
+    <a id="cardAccounts" href="index.html" class="portal-card" style="display: none;">
       <span class="portal-badge badge-acc">إدارة العملاء والماليات</span>
       <div>
         <div class="portal-icon">👥</div>
@@ -323,7 +323,7 @@
   </div>
 </div>
 
-<!-- Modal Change Password (لكل طبيب / مستخدم لتغيير كلمة السر الخاصة به فقط) -->
+<!-- Modal Change Password -->
 <div id="changePasswordModal" class="modal">
   <div class="modal-content" style="max-width: 420px;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
@@ -436,7 +436,6 @@
     let roleText = currentUser.role === 'admin' ? '⭐ المشرف العام' : (currentUser.role === 'doctor' ? '🩺 طبيب' : '💼 إدارة الحسابات');
     document.getElementById('userBadge').innerText = `👤 ${currentUser.full_name} (${roleText})`;
 
-    // 🔒 إظهار زر إدارة المستخدمين فقط للآدمن
     if (currentUser.role === 'admin') {
       document.getElementById('manageUsersBtn').style.display = 'inline-block';
     } else {
@@ -478,7 +477,7 @@
     document.getElementById('authOverlay').style.display = 'flex';
   }
 
-  /* 🔑 دوال تغيير كلمة السر للمستخدم الحالي */
+  /* 🔑 تغيير كلمة السر للمستخدم الحالي */
   function openChangePasswordModal() {
     if (!currentUser) return;
     document.getElementById('currentPassInput').value = '';
@@ -512,7 +511,6 @@
       return alert('⚠️ يرجى اختيار كلمة سر قوية (4 أحرف/أرقام على الأقل).');
     }
 
-    // تحديث كلمة السر في جدول المستخدمين
     const { error } = await supabaseClient
       .from('system_users')
       .update({ password: newPass })
@@ -528,7 +526,7 @@
     }
   }
 
-  /* 👤 دوال إدارة المستخدمين (إضافة / حذف - للآدمن فقط) */
+  /* 👤 إدارة المستخدمين للآدمن فقط */
   function openUsersModal() {
     if (!currentUser || currentUser.role !== 'admin') {
       return alert('⚠️ غير مسموح: صلاحية إدارة المستخدمين متاحة فقط لحساب المشرف العام (Admin).');
