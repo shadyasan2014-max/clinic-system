@@ -1,13 +1,4 @@
 <!DOCTYPE html>
-<a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 14px; cursor: pointer;">
-  <div class="logo-box">
-    <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
-  </div>
-  <div class="header-text">
-    <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-    <p>العودة للشاشة الرئيسية</p>
-  </div>
-</a>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -81,7 +72,16 @@
     flex-wrap: wrap;
     gap: 12px;
   }
-  .brand-logo { display: flex; align-items: center; gap: 14px; }
+  .brand-logo { 
+    display: flex; 
+    align-items: center; 
+    gap: 14px; 
+    text-decoration: none; 
+    color: inherit; 
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .brand-logo:hover { opacity: 0.9; }
   .logo-box {
     width: 55px;
     height: 55px;
@@ -155,9 +155,9 @@
 </div>
 
 <div class="container" id="mainContainer">
-  <!-- Header -->
+  <!-- Header with Clickable Logo to Home -->
   <header>
-    <div class="brand-logo">
+    <a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية (Home)">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -165,7 +165,7 @@
         <h1>د. بهاء شكري - نظام تقييم ما قبل العملية (Pre-Op Log)</h1>
         <p>التشخيص الإكلينيكي الكامل والشيت الطبي الجراحي</p>
       </div>
-    </div>
+    </a>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <span id="userBadge" style="font-size: 0.85rem; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-weight: bold;">👤 المستخدم: ...</span>
       <button onclick="openLogsModal()" id="auditLogsBtn" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: none;">📜 سجل الحركة</button>
@@ -698,7 +698,6 @@
     }
   }
 
-  // 📎 معالجة وتحويل الملفات والصور إلى كائنات منظمة
   function handleLabImages(input, previewContainerId) {
     let container = document.getElementById(previewContainerId);
     if (input.files) {
@@ -727,7 +726,6 @@
     let container = document.getElementById(containerId);
     container.innerHTML = '';
     filesArray.forEach((item) => {
-      // دعم المتوافق مع البيانات القديمة (سلاسل نصية مباشرة) أو الكائنات الجديدة
       let isObject = (typeof item === 'object');
       let src = isObject ? item.data : item;
       let name = isObject ? item.name : 'مستند مرفق';
