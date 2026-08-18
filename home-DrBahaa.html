@@ -82,7 +82,8 @@
     flex-wrap: wrap;
     gap: 15px;
   }
-  .brand-logo { display: flex; align-items: center; gap: 16px; }
+  .brand-logo { display: flex; align-items: center; gap: 16px; cursor: pointer; text-decoration: none; color: inherit; transition: opacity 0.2s; }
+  .brand-logo:hover { opacity: 0.92; }
   .logo-box {
     width: 65px;
     height: 65px;
@@ -208,9 +209,9 @@
 </div>
 
 <div class="container" id="mainContainer">
-  <!-- Header -->
+  <!-- Header with Clickable Logo to return Home -->
   <header>
-    <div class="brand-logo">
+    <a href="home.html" class="brand-logo" title="الرئيسية">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -218,9 +219,10 @@
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
         <p>المنظومة الطبية الشاملة لجراحات السمنة والمناظير</p>
       </div>
-    </div>
+    </a>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <span id="userBadge" style="font-size: 0.88rem; background: rgba(255,255,255,0.18); padding: 7px 14px; border-radius: 20px; font-weight: bold;">👤 مرحباً: ...</span>
+      <button onclick="openChangePasswordModal()" style="background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold;">🔑 تغيير كلمة السر</button>
       <button onclick="openUsersModal()" id="manageUsersBtn" style="background: #d97706; color: white; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold; display: none;">👤 إدارة المستخدمين</button>
       <button onclick="logoutPortal()" style="background: #dc2626; color: white; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold;">🔒 خروج</button>
     </div>
@@ -309,6 +311,33 @@
       <div class="portal-btn"><span>فتح بيانات العملاء</span> ⬅️</div>
     </a>
 
+  </div>
+</div>
+
+<!-- Modal Change Password (لكل طبيب ومستخدم لتغيير كلمة السر الخاصة به) -->
+<div id="changePassModal" class="modal">
+  <div class="modal-content" style="max-width: 480px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
+      <h3 style="color: var(--primary);">🔑 تغيير كلمة السر الخاصة بحسابك</h3>
+      <button onclick="closeChangePasswordModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
+    </div>
+
+    <div class="field" style="margin-bottom: 12px;">
+      <label>كلمة السر الحالية:</label>
+      <input type="password" id="oldPasswordInput" placeholder="اكتب كلمة السر الحالية...">
+    </div>
+
+    <div class="field" style="margin-bottom: 12px;">
+      <label>كلمة السر الجديدة:</label>
+      <input type="password" id="newPasswordInput" placeholder="اكتب كلمة السر الجديدة...">
+    </div>
+
+    <div class="field" style="margin-bottom: 16px;">
+      <label>تأكيد كلمة السر الجديدة:</label>
+      <input type="password" id="confirmNewPasswordInput" placeholder="أعد كتابة كلمة السر الجديدة...">
+    </div>
+
+    <button class="btn btn-success" style="width: 100%; padding: 12px; font-size: 0.95rem;" onclick="submitPasswordChange()">💾 تحديث كلمة السر الآن</button>
   </div>
 </div>
 
@@ -442,9 +471,55 @@
     document.getElementById('authOverlay').style.display = 'flex';
   }
 
+  /* 🔑 دوال تغيير كلمة السر للطبيب / المستخدم */
+  function openChangePasswordModal() {
+    if (!currentUser) return;
+    document.getElementById('oldPasswordInput').value = '';
+    document.getElementById('newPasswordInput').value = '';
+    document.getElementById('confirmNewPasswordInput').value = '';
+    document.getElementById('changePassModal').style.display = 'flex';
+  }
+
+  function closeChangePasswordModal() {
+    document.getElementById('changePassModal').style.display = 'none';
+  }
+
+  async function submitPasswordChange() {
+    let oldPass = document.getElementById('oldPasswordInput').value.trim();
+    let newPass = document.getElementById('newPasswordInput').value.trim();
+    let confirmPass = document.getElementById('confirmNewPasswordInput').value.trim();
+
+    if (!oldPass || !newPass || !confirmPass) {
+      return alert('⚠️ برجاء ملء كافة خانات كلمة السر!');
+    }
+
+    if (oldPass !== currentUser.password) {
+      return alert('❌ كلمة السر الحالية غير صحيحة!');
+    }
+
+    if (newPass !== confirmPass) {
+      return alert('❌ كلمة السر الجديدة غير متطابقة مع التأكيد!');
+    }
+
+    if (newPass.length < 4) {
+      return alert('⚠️ كلمة السر يجب أن تتكون من 4 خانات على الأقل!');
+    }
+
+    // تحديث كلمة السر في Supabase
+    const { error } = await supabaseClient.from('system_users').update({ password: newPass }).eq('id', currentUser.id);
+
+    if (!error) {
+      currentUser.password = newPass;
+      localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
+      alert('✅ تم تغيير وتحديث كلمة السر الخاصة بك بنجاح!');
+      closeChangePasswordModal();
+    } else {
+      alert('⚠️ تعذر تحديث كلمة السر، يرجى مراجعة الاتصال بالإنترنت.');
+    }
+  }
+
   /* 👤 دوال إدارة المستخدمين (إضافة / حذف - للآدمن فقط) */
   function openUsersModal() {
-    // 🔒 تحقق أمني صارم
     if (!currentUser || currentUser.role !== 'admin') {
       return alert('⚠️ غير مسموح: صلاحية إدارة المستخدمين متاحة فقط لحساب المشرف العام (Admin).');
     }
@@ -470,7 +545,6 @@
         let roleBadge = user.role === 'admin' ? '<b style="color:var(--accent-gold);">⭐ مدير نظام</b>' : (user.role === 'doctor' ? '<b style="color:var(--success);">🩺 طبيب</b>' : '<b style="color:var(--cyan);">💼 حسابات</b>');
         
         let deleteBtn = '';
-        // منع الآدمن من حذف حسابه الشخصي المسجل به حالياً
         if (user.username !== currentUser.username) {
           deleteBtn = `<button class="btn btn-danger" style="padding: 4px 10px; font-size:0.78rem;" onclick="deleteUser(${user.id}, '${user.full_name}')">🗑️ حذف</button>`;
         } else {
