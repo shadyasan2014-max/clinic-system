@@ -1,17 +1,6 @@
 <!DOCTYPE html>
-
+<html lang="ar" dir="rtl">
 <head>
-  <html lang="ar" dir="rtl">
-  <a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 14px; cursor: pointer;">
-  <div class="logo-box">
-    <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
-  </div>
-  <div class="header-text">
-    <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
-    <p>العودة للشاشة الرئيسية</p>
-  </div>
-</a>
-    
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام إدارة العيادات والحجوزات - د. بهاء شكري</title>
@@ -48,7 +37,16 @@
     box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); 
     border-bottom: 3px solid var(--accent-lime);
   }
-  .brand-logo { display: flex; align-items: center; gap: 16px; }
+  .brand-logo { 
+    display: flex; 
+    align-items: center; 
+    gap: 16px; 
+    text-decoration: none; 
+    color: inherit; 
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .brand-logo:hover { opacity: 0.9; }
   .logo-box {
     width: 65px;
     height: 65px;
@@ -136,9 +134,9 @@
 <body>
 
 <div class="container">
-  <!-- Header Branding with Logo -->
+  <!-- Header Branding with Clickable Logo to Home -->
   <header>
-    <div class="brand-logo">
+    <a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية (Home)">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -146,7 +144,7 @@
         <h1>د. بهاء شكري - Dr. Bahaa Shoukry</h1>
         <p>نظام إدارة حجوزات العيادات</p>
       </div>
-    </div>
+    </a>
     <button class="btn btn-secondary" onclick="toggleClinicManager()">⚙️ إدارة الفروع والعيادات</button>
   </header>
 
@@ -435,7 +433,7 @@
   let availableClinics = ["حلوان", "المهندسين", "مصر الجديدة", "اسكندرية"];
   let allAppointments = [];
   let currentCheckInId = null;
-  let currentUploadedFiles = []; // قائمة الملفات والمستندات للكشف الحالي
+  let currentUploadedFiles = [];
   let lastSearchResults = [];
 
   window.onload = function() {
@@ -583,7 +581,6 @@
         visitTypeDisplay += `<br><small style="color:#15803d; font-weight:bold;">العملية: ${app.surgeryDate}</small>`;
       }
 
-      // دعم المرفقات المتعددة سواء بالنظام الجديد (files) أو القديم (paperImg)
       let filesCount = (app.files && app.files.length > 0) ? app.files.length : (app.paperImg ? 1 : 0);
       let attachBtn = filesCount > 0 
         ? `<button class="btn btn-secondary" style="padding: 5px 10px; font-size:0.8rem;" onclick="viewAttachments(${app.dbId})">📂 المرفقات (${filesCount})</button>` 
@@ -780,7 +777,6 @@
     box.style.display = 'block';
   }
 
-  /* 🖨️ 1. طباعة نتائج البحث كشف كامل */
   function printSearchResultsTable() {
     if (!lastSearchResults || lastSearchResults.length === 0) {
       alert("⚠️ لا توجد نتائج بحث للطباعة!");
@@ -862,7 +858,6 @@
     document.getElementById('printReceiptArea').style.display = 'none';
   }
 
-  /* 🖨️ 2. طباعة تقرير ملف الحالة المفصل */
   async function printSinglePatientFile(patientCode, patientName) {
     let patientVisits = allAppointments.filter(app => (
       (patientCode && app.patientCode && app.patientCode.trim().toLowerCase() === patientCode.trim().toLowerCase()) ||
@@ -966,7 +961,6 @@
     }
   }
 
-  // 📎 معالجة ورفع الملفات المتعددة (صور / PDF / Word / مستندات)
   function handleVisitFiles(input) {
     if (input.files) {
       Array.from(input.files).forEach(file => {
@@ -1019,7 +1013,6 @@
     let app = allAppointments.find(a => a.dbId === dbId);
     if(!app) return;
 
-    // تهيئة قائمة الملفات
     if (app.files && Array.isArray(app.files)) {
       currentUploadedFiles = [...app.files];
     } else if (app.paperImg) {
@@ -1109,9 +1102,7 @@
       updatedPayload.isFree = document.getElementById('isFreeVisit').checked;
       updatedPayload.fee = updatedPayload.isFree ? 0 : (parseFloat(document.getElementById('visitFee').value) || 0);
 
-      // حفظ مصفوفة الملفات المرفوعة
       updatedPayload.files = currentUploadedFiles;
-      // التوافق مع الأنظمة القديمة بحفظ أول صورة إن وجدت
       let firstImg = currentUploadedFiles.find(f => f.type && f.type.startsWith('image/'));
       updatedPayload.paperImg = firstImg ? firstImg.data : "";
 
@@ -1133,7 +1124,6 @@
     }
   }
 
-  // 📂 استعراض وتنزيل المستندات والصور المرفقة
   function viewAttachments(dbId) {
     let app = allAppointments.find(a => a.dbId === dbId);
     if(!app) return;
