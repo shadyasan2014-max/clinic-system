@@ -205,7 +205,7 @@
 <!-- Lock Screen for Authorization -->
 <div id="authOverlay">
   <div class="auth-box">
-    <div class="auth-logo" onclick="window.location.href='home.html'">
+    <div class="auth-logo" onclick="window.location.href='index.html'">
       <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
     </div>
     <h2>🩺 منظومة د. بهاء شكري الطبية</h2>
@@ -218,9 +218,9 @@
 </div>
 
 <div class="container" id="mainContainer">
-  <!-- Header with Link to home.html -->
+  <!-- Header with Link to index.html -->
   <header>
-    <a href="home.html" class="brand-logo" title="الرجوع للبوابة الرئيسية">
+    <a href="index.html" class="brand-logo" title="الرجوع للبوابة الرئيسية">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -309,8 +309,8 @@
       <div class="portal-btn"><span>فتح شيت Post-Op</span> ⬅️</div>
     </a>
 
-    <!-- 4. Accounts & Customer Data (خاص بالآدمن والحسابات فقط) -->
-    <a id="cardAccounts" href="index.html" class="portal-card" style="display: none;">
+    <!-- 4. Customers System (خاص بالآدمن والحسابات فقط) -->
+    <a id="cardAccounts" href="customers.html" class="portal-card" style="display: none;">
       <span class="portal-badge badge-acc">إدارة العملاء والماليات</span>
       <div>
         <div class="portal-icon">👥</div>
@@ -477,7 +477,7 @@
     document.getElementById('authOverlay').style.display = 'flex';
   }
 
-  /* 🔑 تغيير كلمة السر للمستخدم الحالي */
+  /* 🔑 تغيير كلمة السر */
   function openChangePasswordModal() {
     if (!currentUser) return;
     document.getElementById('currentPassInput').value = '';
