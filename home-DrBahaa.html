@@ -52,6 +52,7 @@
     width: 75px; height: 75px; border-radius: 50%;
     border: 3px solid var(--accent-lime); margin: 0 auto 15px;
     overflow: hidden; display: flex; align-items: center; justify-content: center; background: #fff;
+    cursor: pointer;
   }
   .auth-box .auth-logo img { width: 100%; height: 100%; object-fit: cover; }
   .auth-box h2 { color: var(--primary); margin-bottom: 6px; font-size: 1.35rem; }
@@ -82,8 +83,16 @@
     flex-wrap: wrap;
     gap: 15px;
   }
-  .brand-logo { display: flex; align-items: center; gap: 16px; cursor: pointer; text-decoration: none; color: inherit; transition: opacity 0.2s; }
-  .brand-logo:hover { opacity: 0.92; }
+  .brand-logo { 
+    display: flex; 
+    align-items: center; 
+    gap: 16px; 
+    text-decoration: none; 
+    color: inherit; 
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .brand-logo:hover { opacity: 0.95; }
   .logo-box {
     width: 65px;
     height: 65px;
@@ -196,7 +205,7 @@
 <!-- Lock Screen for Authorization -->
 <div id="authOverlay">
   <div class="auth-box">
-    <div class="auth-logo">
+    <div class="auth-logo" onclick="window.location.reload()">
       <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
     </div>
     <h2>🩺 منظومة د. بهاء شكري الطبية</h2>
@@ -209,9 +218,9 @@
 </div>
 
 <div class="container" id="mainContainer">
-  <!-- Header with Clickable Logo to return Home -->
+  <!-- Header with Clickable Home Logo -->
   <header>
-    <a href="home.html" class="brand-logo" title="الرئيسية">
+    <a href="index.html" class="brand-logo" title="الرجوع للرئيسية">
       <div class="logo-box">
         <img src="Logo.png" alt="Logo" onerror="this.src='logo.png'; this.onerror=null;">
       </div>
@@ -301,7 +310,7 @@
     </a>
 
     <!-- 4. Accounts & Customer Data (خاص بالآدمن والحسابات فقط) -->
-    <a id="cardAccounts" href="index.html" class="portal-card" style="display: none;">
+    <a id="cardAccounts" href="accounts.html" class="portal-card" style="display: none;">
       <span class="portal-badge badge-acc">إدارة العملاء والماليات</span>
       <div>
         <div class="portal-icon">👥</div>
@@ -314,30 +323,28 @@
   </div>
 </div>
 
-<!-- Modal Change Password (لكل طبيب ومستخدم لتغيير كلمة السر الخاصة به) -->
-<div id="changePassModal" class="modal">
-  <div class="modal-content" style="max-width: 480px;">
+<!-- Modal Change Password (لكل طبيب / مستخدم لتغيير كلمة السر الخاصة به فقط) -->
+<div id="changePasswordModal" class="modal">
+  <div class="modal-content" style="max-width: 420px;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 style="color: var(--primary);">🔑 تغيير كلمة السر الخاصة بحسابك</h3>
+      <h3 style="color: var(--primary);">🔑 تغيير كلمة السر الخاصة بك</h3>
       <button onclick="closeChangePasswordModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
-
+    
     <div class="field" style="margin-bottom: 12px;">
       <label>كلمة السر الحالية:</label>
-      <input type="password" id="oldPasswordInput" placeholder="اكتب كلمة السر الحالية...">
+      <input type="password" id="currentPassInput" placeholder="اكتب كلمة السر الحالية...">
     </div>
-
     <div class="field" style="margin-bottom: 12px;">
       <label>كلمة السر الجديدة:</label>
-      <input type="password" id="newPasswordInput" placeholder="اكتب كلمة السر الجديدة...">
+      <input type="password" id="newPassInput" placeholder="اكتب كلمة السر الجديدة...">
     </div>
-
     <div class="field" style="margin-bottom: 16px;">
       <label>تأكيد كلمة السر الجديدة:</label>
-      <input type="password" id="confirmNewPasswordInput" placeholder="أعد كتابة كلمة السر الجديدة...">
+      <input type="password" id="confirmNewPassInput" placeholder="أعد كتابة كلمة السر الجديدة...">
     </div>
 
-    <button class="btn btn-success" style="width: 100%; padding: 12px; font-size: 0.95rem;" onclick="submitPasswordChange()">💾 تحديث كلمة السر الآن</button>
+    <button class="btn btn-success" style="width: 100%; padding: 10px;" onclick="saveNewPassword()">💾 حفظ وتحديث كلمة السر</button>
   </div>
 </div>
 
@@ -471,29 +478,29 @@
     document.getElementById('authOverlay').style.display = 'flex';
   }
 
-  /* 🔑 دوال تغيير كلمة السر للطبيب / المستخدم */
+  /* 🔑 دوال تغيير كلمة السر للمستخدم الحالي */
   function openChangePasswordModal() {
     if (!currentUser) return;
-    document.getElementById('oldPasswordInput').value = '';
-    document.getElementById('newPasswordInput').value = '';
-    document.getElementById('confirmNewPasswordInput').value = '';
-    document.getElementById('changePassModal').style.display = 'flex';
+    document.getElementById('currentPassInput').value = '';
+    document.getElementById('newPassInput').value = '';
+    document.getElementById('confirmNewPassInput').value = '';
+    document.getElementById('changePasswordModal').style.display = 'flex';
   }
 
   function closeChangePasswordModal() {
-    document.getElementById('changePassModal').style.display = 'none';
+    document.getElementById('changePasswordModal').style.display = 'none';
   }
 
-  async function submitPasswordChange() {
-    let oldPass = document.getElementById('oldPasswordInput').value.trim();
-    let newPass = document.getElementById('newPasswordInput').value.trim();
-    let confirmPass = document.getElementById('confirmNewPasswordInput').value.trim();
+  async function saveNewPassword() {
+    let currentPass = document.getElementById('currentPassInput').value.trim();
+    let newPass = document.getElementById('newPassInput').value.trim();
+    let confirmPass = document.getElementById('confirmNewPassInput').value.trim();
 
-    if (!oldPass || !newPass || !confirmPass) {
-      return alert('⚠️ برجاء ملء كافة خانات كلمة السر!');
+    if (!currentPass || !newPass || !confirmPass) {
+      return alert('⚠️ يرجى ملء كافة حقول كلمة السر.');
     }
 
-    if (oldPass !== currentUser.password) {
+    if (currentPass !== currentUser.password) {
       return alert('❌ كلمة السر الحالية غير صحيحة!');
     }
 
@@ -502,19 +509,22 @@
     }
 
     if (newPass.length < 4) {
-      return alert('⚠️ كلمة السر يجب أن تتكون من 4 خانات على الأقل!');
+      return alert('⚠️ يرجى اختيار كلمة سر قوية (4 أحرف/أرقام على الأقل).');
     }
 
-    // تحديث كلمة السر في Supabase
-    const { error } = await supabaseClient.from('system_users').update({ password: newPass }).eq('id', currentUser.id);
+    // تحديث كلمة السر في جدول المستخدمين
+    const { error } = await supabaseClient
+      .from('system_users')
+      .update({ password: newPass })
+      .eq('id', currentUser.id);
 
     if (!error) {
       currentUser.password = newPass;
       localStorage.setItem('activeSystemUser', JSON.stringify(currentUser));
-      alert('✅ تم تغيير وتحديث كلمة السر الخاصة بك بنجاح!');
+      alert('✅ تم تغيير كلمة السر بنجاح!');
       closeChangePasswordModal();
     } else {
-      alert('⚠️ تعذر تحديث كلمة السر، يرجى مراجعة الاتصال بالإنترنت.');
+      alert('⚠️ تعذر تحديث كلمة السر، يرجى المحاولة لاحقاً.');
     }
   }
 
