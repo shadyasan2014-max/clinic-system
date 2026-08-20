@@ -392,7 +392,11 @@
       <div id="modalFilesPreview" class="files-preview-container"></div>
     </div>
 
-    <button class="btn btn-success" style="width: 100%; margin-top: 20px;" onclick="confirmCheckIn()">💾 حفظ وتأكيد الحضور أونلاين</button>
+    <!-- أزرار التحكم في المودال (حفظ التعديلات فقط vs تأكيد الحضور والكشف) -->
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn btn-warning" style="flex: 1;" onclick="saveCheckInEditsOnly()">💾 حفظ التعديلات فقط</button>
+      <button class="btn btn-success" style="flex: 1;" onclick="confirmCheckIn()">✅ تأكيد حضور وكشف أونلاين</button>
+    </div>
   </div>
 </div>
 
@@ -534,7 +538,6 @@
     }
   }
 
-  // تم التعديل هنا: حقل الكود يظهر عند اختيار "أخرى" أو "متابعة" فقط
   function toggleBookingVisitFields() {
     let type = document.getElementById('bookingVisitType').value;
     document.getElementById('otherTypeBox').style.display = (type === 'أخرى') ? 'flex' : 'none';
@@ -1058,7 +1061,6 @@
     document.getElementById('checkInModal').style.display = 'none';
   }
 
-  // تم التعديل هنا أيضاً في المودال: حقل الكود يظهر في "متابعة" أو "أخرى"
   function toggleModalFollowUpFields() {
     let type = document.getElementById('modalVisitType').value;
     let isFollowUp = (type === 'متابعة');
@@ -1087,6 +1089,41 @@
     await supabaseClient.from('postop_records').insert([{ data: payload }]);
   }
 
+  // حفظ التعديلات فقط (دون تغيير حالة الحضور إلى تم الحضور)
+  async function saveCheckInEditsOnly() {
+    let app = allAppointments.find(a => a.dbId === currentCheckInId);
+    if(app) {
+      let updatedPayload = { ...app };
+      delete updatedPayload.dbId;
+
+      updatedPayload.name = document.getElementById('modalPatientName').value.trim();
+      updatedPayload.patientCode = document.getElementById('modalPatientCode').value.trim();
+      updatedPayload.phone1 = document.getElementById('modalPhone1').value.trim();
+      updatedPayload.phone2 = document.getElementById('modalPhone2').value.trim();
+      updatedPayload.visitType = document.getElementById('modalVisitType').value;
+      updatedPayload.notes = document.getElementById('visitNotes').value;
+      updatedPayload.surgeryType = document.getElementById('modalSurgeryType').value;
+      updatedPayload.surgeryDate = document.getElementById('modalSurgeryDate').value;
+      updatedPayload.hospitalName = document.getElementById('modalHospitalName').value;
+      
+      updatedPayload.isFree = document.getElementById('isFreeVisit').checked;
+      updatedPayload.fee = updatedPayload.isFree ? 0 : (parseFloat(document.getElementById('visitFee').value) || 0);
+
+      updatedPayload.files = currentUploadedFiles;
+      let firstImg = currentUploadedFiles.find(f => f.type && f.type.startsWith('image/'));
+      updatedPayload.paperImg = firstImg ? firstImg.data : "";
+
+      const { error } = await supabaseClient.from('appointments').update({ data: updatedPayload }).eq('id', currentCheckInId);
+      
+      if(!error) {
+        alert("✅ تم حفظ التعديلات بنجاح!");
+        closeModal();
+        fetchAppointmentsFromSupabase();
+      }
+    }
+  }
+
+  // تأكيد الحضور والكشف (يغير الحالة إلى done)
   async function confirmCheckIn() {
     let app = allAppointments.find(a => a.dbId === currentCheckInId);
     if(app) {
