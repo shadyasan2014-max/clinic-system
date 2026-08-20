@@ -17,16 +17,39 @@
     --text: #1e293b;
     --border: #cbd5e1;
     --success: #16a34a;
+    --warning: #ca8a04;
     --danger: #dc2626;
   }
+  
   * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
   body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
   .container { max-width: 1180px; margin: 0 auto; }
   
-  header { background: var(--primary); color: white; padding: 18px 24px; border-radius: 14px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); border-bottom: 3px solid var(--accent-lime); }
+  header { 
+    background: var(--primary); 
+    color: white; 
+    padding: 18px 24px; 
+    border-radius: 14px; 
+    margin-bottom: 24px; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(15, 76, 92, 0.15); 
+    border-bottom: 3px solid var(--accent-lime);
+  }
   .brand-logo { display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; cursor: pointer; transition: opacity 0.2s; }
   .brand-logo:hover { opacity: 0.9; }
-  .logo-box { width: 65px; height: 65px; border-radius: 50%; border: 2px solid var(--accent-lime); background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .logo-box {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-lime);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
   .logo-box img { width: 100%; height: 100%; object-fit: cover; }
   .header-text h1 { font-size: 1.4rem; margin-bottom: 2px; color: #ffffff; }
   .header-text p { font-size: 0.88rem; color: var(--accent-lime); font-weight: 500; }
@@ -37,23 +60,37 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field label { font-size: 0.88rem; font-weight: 600; color: #334155; }
-  .field input, .field select, .field textarea { padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; }
-  
-  .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  .field input, .field select, .field textarea { padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 76, 92, 0.1); }
+
+  .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
   .btn:hover { background: var(--primary-hover); }
   .btn-success { background: var(--success); }
   .btn-secondary { background: #475569; }
+  .btn-danger { background: var(--danger); }
+  .btn-warning { background: var(--accent-gold); color: white; }
+  .btn-info { background: #0284c7; color: white; }
   
   table { width: 100%; border-collapse: collapse; margin-top: 12px; text-align: right; }
   th, td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.92rem; }
-  th { background-color: #f1f5f9; color: var(--primary); }
+  th { background-color: #f1f5f9; color: var(--primary); font-weight: bold; }
   
+  .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
+  .status-pending { background: #fef9c3; color: #a16207; border: 1px solid #fde047; }
+  .status-done { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  .status-cancelled { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+  .visit-badge { background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+  .price-badge { background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; }
+  .free-badge { background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; }
+  .clinic-tag { display: inline-flex; align-items: center; gap: 8px; background: #e0f2fe; color: #0369a1; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; border: 1px solid #bae6fd; }
+  .clinic-tag button { background: transparent; border: none; color: var(--danger); font-weight: bold; cursor: pointer; font-size: 1rem; }
+
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px); justify-content: center; align-items: center; padding: 20px; z-index: 1000; }
-  .modal-content { background: white; padding: 26px; border-radius: 14px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; }
-  
+  .modal-content { background: white; padding: 26px; border-radius: 14px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .followup-fields { background-color: #f0fdf4; border: 1px dashed #86efac; padding: 16px; border-radius: 8px; margin-top: 12px; }
   .files-preview-container { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-  .file-item-card { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; }
-  .file-item-card img { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; }
+  .file-item-card { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
   .remove-btn { color: var(--danger); background: none; border: none; font-size: 1.1rem; cursor: pointer; }
 </style>
 </head>
@@ -73,32 +110,72 @@
     <button class="btn btn-secondary" onclick="toggleClinicManager()">⚙️ إدارة الفروع والعيادات</button>
   </header>
 
-  <!-- Add New Appointment Form -->
+  <div id="clinicManagerBox" class="card" style="display: none; background: #fff7ed; border-color: #ffedd5;">
+    <div class="card-title" style="color: #c2410c; border-color: #ffedd5;">⚙️ إدارة قائمة العيادات والفروع</div>
+    <div class="grid" style="align-items: end;">
+      <div class="field" style="grid-column: span 2;">
+        <label>إضافة عيادة جديدة للقائمة:</label>
+        <input type="text" id="newClinicName" placeholder="مثال: عيادة التجمع، عيادة الشيخ زايد...">
+      </div>
+      <button class="btn btn-success" onclick="addNewClinic()">➕ إضافة العيادة</button>
+    </div>
+    <div id="clinicsTagsContainer" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+  </div>
+
+  <div class="card" style="background: #f0f9ff; border-color: #bae6fd;">
+    <div class="card-title" style="color: #0369a1; border-color: #bae6fd; display:flex; justify-content:space-between; align-items:center;">
+      <span>📍 تحديد العيادة والتاريخ لتصفية الحجوزات</span>
+      <button onclick="fetchAppointmentsFromSupabase()" class="btn btn-secondary" style="padding:4px 12px; font-size:0.8rem;">🔄 تحديث البيانات</button>
+    </div>
+    <div class="grid" style="margin-bottom: 0;">
+      <div class="field">
+        <label>اختر العيادة:</label>
+        <select id="activeClinic" onchange="filterAppointments()"></select>
+      </div>
+      <div class="field">
+        <label>تاريخ الحجز واليومية:</label>
+        <input type="date" id="activeDate" onchange="filterAppointments()">
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title" id="bookingFormTitle">➕ إضافة حجز مريض جديد</div>
     <input type="hidden" id="editingDbId" value="-1">
     
     <div class="grid">
       <div class="field">
-        <label>نوع الزيارة</label>
+        <label>نوع الزيارة / الحجز</label>
         <select id="bookingVisitType" onchange="toggleBookingVisitFields()">
           <option value="كشف جديد">كشف جديد</option>
           <option value="متابعة">متابعة (بعد العملية)</option>
-          <option value="أخرى">أخرى</option>
+          <option value="أخرى">أخرى (تحديد بيان)</option>
         </select>
       </div>
 
-      <!-- حقل الكود يظهر دائماً -->
+      <!-- يظهر دائماً -->
       <div class="field" id="bookingPatientCodeBox">
         <label style="color: var(--primary); font-weight: bold;">🔑 كود المريض:</label>
         <input type="text" id="bookingPatientCode" placeholder="مثال: C-101" onchange="fetchPatientDetailsFromPreOp('booking')">
       </div>
 
-      <div class="field"><label>اسم المريض بالكامل</label><input type="text" id="patientName"></div>
-      <div class="field"><label>رقم التليفون 1</label><input type="tel" id="patientPhone1"></div>
+      <div class="field"><label>اسم المريض بالكامل</label><input type="text" id="patientName" placeholder="مثال: أحمد محمود"></div>
+      <div class="field"><label>رقم التليفون 1</label><input type="tel" id="patientPhone1" placeholder="01xxxxxxxxx"></div>
+      <div class="field" id="bookingSurgeryDateBox" style="display: none;">
+        <label style="color: var(--success);">📅 تاريخ إجراء العملية</label>
+        <input type="date" id="bookingSurgeryDate">
+      </div>
     </div>
+    <button class="btn" id="saveBookingBtn" style="width: 100%;" onclick="addOrUpdateAppointment()">💾 حفظ الحجز أونلاين</button>
+  </div>
 
-    <button class="btn" style="width: 100%;" onclick="addOrUpdateAppointment()">💾 حفظ الحجز أونلاين</button>
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>م</th><th>اسم المريض</th><th>التليفون</th><th>التاريخ والفرع</th><th>نوع الزيارة</th><th>حالة الحضور</th><th>الإجراءات</th></tr>
+      </thead>
+      <tbody id="appointmentsTable"></tbody>
+    </table>
   </div>
 </div>
 
@@ -109,40 +186,46 @@
         <label style="color: var(--primary); font-weight: bold;">🔑 كود المريض:</label>
         <input type="text" id="modalPatientCode" onchange="fetchPatientDetailsFromPreOp('modal')">
     </div>
-    <!-- ... (باقي محتوى الـ Modal كما هو) -->
     <div class="field" style="margin-top: 16px;">
       <label>📎 إرفاق ملفات (صور / PDF / Word):</label>
       <input type="file" id="visitPaperFiles" multiple onchange="handleVisitFiles(this)">
       <div id="modalFilesPreview" class="files-preview-container"></div>
     </div>
-    <button class="btn btn-success" style="width: 100%;" onclick="confirmCheckIn()">💾 حفظ وتأكيد</button>
+    <button class="btn btn-success" style="width: 100%; margin-top: 15px;" onclick="confirmCheckIn()">💾 حفظ وتأكيد</button>
   </div>
 </div>
 
 <script>
-  // ... (نفس السكريبت الخاص بك مع التعديل التالي)
+  const SUPABASE_URL = "https://gfheumheyrmyrczvlwdh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_SFmYaaTF08Zt2gKPmk7UUw_siKQ_tDt";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  function toggleBookingVisitFields() {
-    let type = document.getElementById('bookingVisitType').value;
-    document.getElementById('otherTypeBox').style.display = (type === 'أخرى') ? 'flex' : 'none';
-    document.getElementById('bookingSurgeryDateBox').style.display = (type === 'متابعة') ? 'flex' : 'none';
-    // لا نخفي حقل الكود، نتركه يظهر دائماً
-    document.getElementById('bookingPatientCodeBox').style.display = 'flex';
-  }
-
-  function toggleModalFollowUpFields() {
-    let type = document.getElementById('modalVisitType').value;
-    let isFollowUp = (type === 'متابعة');
-    document.getElementById('modalFollowUpFields').style.display = isFollowUp ? 'block' : 'none';
-    // يظهر دائماً
-    document.getElementById('modalPatientCodeBox').style.display = 'flex';
-  }
+  let availableClinics = ["حلوان", "المهندسين", "مصر الجديدة", "اسكندرية"];
+  let allAppointments = [];
+  let currentUploadedFiles = [];
 
   window.onload = function() {
     renderClinicsOptions();
     fetchAppointmentsFromSupabase();
-    toggleBookingVisitFields(); // لتفعيل الإظهار عند التحميل
+    toggleBookingVisitFields();
   };
+
+  function toggleBookingVisitFields() {
+    let type = document.getElementById('bookingVisitType').value;
+    document.getElementById('bookingSurgeryDateBox').style.display = (type === 'متابعة') ? 'flex' : 'none';
+    document.getElementById('bookingPatientCodeBox').style.display = 'flex'; // دائماً
+  }
+
+  function toggleModalFollowUpFields() {
+    let type = document.getElementById('modalVisitType').value;
+    document.getElementById('modalFollowUpFields').style.display = (type === 'متابعة') ? 'block' : 'none';
+    document.getElementById('modalPatientCodeBox').style.display = 'flex'; // دائماً
+  }
+
+  // ... (باقي دوال الجافاسكريبت الخاصة بك)
+  async function fetchAppointmentsFromSupabase() { /* ... */ }
+  async function addOrUpdateAppointment() { /* ... */ }
+  // تأكد من ربط الدوال الخاصة برفع الملفات (handleVisitFiles)
 </script>
 </body>
 </html>
