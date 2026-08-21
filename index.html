@@ -362,11 +362,13 @@
       <div class="grid">
         <div class="field"><label>اسم المستخدم (اليوزر)</label><input type="text" id="newUsername" placeholder="مثال: dr_ahmed"></div>
         <div class="field"><label>كلمة السر</label><input type="text" id="newPassword" placeholder="مثال: 123456"></div>
-        <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: د. أحمد تغذية"></div>
+        <div class="field"><label>الاسم الظاهر</label><input type="text" id="newFullName" placeholder="مثال: د. أحمد جراحة"></div>
         <div class="field">
           <label>نوع وصلاحية الحساب:</label>
           <select id="newUserRole">
-            <option value="doctor" selected>🩺 دكتور متابعة وتغذية (أقسام طبية فقط)</option>
+            <option value="surgeon_follower" selected>🩺 دكتور جراحة المتابع</option>
+            <option value="nutrition_follower">🥗 دكتور تغذية المتابع</option>
+            <option value="admin_staff">📋 إداري</option>
             <option value="accountant">💼 موظف حسابات (بيانات العملاء فقط)</option>
             <option value="admin">⭐ مدير نظام كامل (كل الصلاحيات)</option>
           </select>
@@ -433,7 +435,7 @@
     document.getElementById('authOverlay').style.display = 'none';
     document.getElementById('mainContainer').style.display = 'block';
     
-    let roleText = currentUser.role === 'admin' ? '⭐ المشرف العام' : (currentUser.role === 'doctor' ? '🩺 طبيب' : '💼 إدارة الحسابات');
+    let roleText = currentUser.role === 'admin' ? '⭐ المشرف العام' : (currentUser.role === 'surgeon_follower' ? '🩺 دكتور جراحة المتابع' : (currentUser.role === 'nutrition_follower' ? '🥗 دكتور تغذية المتابع' : (currentUser.role === 'admin_staff' ? '📋 إداري' : '💼 إدارة الحسابات')));
     document.getElementById('userBadge').innerText = `👤 ${currentUser.full_name} (${roleText})`;
 
     if (currentUser.role === 'admin') {
@@ -556,7 +558,7 @@
     if (!error && data) {
       tbody.innerHTML = '';
       data.forEach(user => {
-        let roleBadge = user.role === 'admin' ? '<b style="color:var(--accent-gold);">⭐ مدير نظام</b>' : (user.role === 'doctor' ? '<b style="color:var(--success);">🩺 طبيب</b>' : '<b style="color:var(--cyan);">💼 حسابات</b>');
+        let roleBadge = user.role === 'admin' ? '<b style="color:var(--accent-gold);">⭐ مدير نظام</b>' : (user.role === 'surgeon_follower' ? '<b style="color:var(--success);">🩺 دكتور جراحة المتابع</b>' : (user.role === 'nutrition_follower' ? '<b style="color:#0284c7;">🥗 دكتور تغذية المتابع</b>' : (user.role === 'admin_staff' ? '<b style="color:#7c3aed;">📋 إداري</b>' : '<b style="color:var(--cyan);">💼 حسابات</b>')));
         
         let deleteBtn = '';
         if (user.username !== currentUser.username) {
