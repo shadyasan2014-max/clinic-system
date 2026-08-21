@@ -489,11 +489,11 @@
   </div>
 </div>
 
-<!-- Modal Case Report Generator (📄 تقرير الحالة الطبي المفصل - بدون الجزء المالي) -->
+<!-- Modal Case Report Generator (📄 تقرير الحالة الطبي المفصل - صفحة العرض والتعديل المنفصلة) -->
 <div id="reportModal" class="modal">
-  <div class="modal-content">
+  <div class="modal-content" style="max-width: 900px;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
-      <h3 id="repModalTitle" style="color: var(--primary);">📄 إعداد تقرير وتوصيات المريض الطبية</h3>
+      <h3 id="repModalTitle" style="color: var(--primary);">📄 إعداد وتعديل وعرض التقرير الطبي للمريض</h3>
       <button onclick="closeReportModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
 
@@ -509,19 +509,23 @@
       </div>
     </div>
 
-    <div class="field" style="margin-bottom: 16px;">
-      <label style="font-weight: bold; color: var(--primary);">✍️ التقرير الطبي المفصل والتوصيات والإرشادات للحالة:</label>
-      <textarea id="repMedicalText" rows="5" placeholder="اكتب هنا التقرير الطبي المفصل، ملاحظات ما بعد العملية، إرشادات التغذية والمتابعة..." style="font-size: 0.95rem; line-height: 1.5;"></textarea>
+    <div class="field" style="margin-bottom: 20px;">
+      <label style="font-weight: bold; color: var(--primary); font-size: 1rem;">✍️ محتوى التقرير الطبي والتوصيات القابلة للتعديل:</label>
+      <textarea id="repMedicalText" rows="8" placeholder="اكتب هنا التقرير الطبي المفصل، ملاحظات ما بعد العملية، إرشادات التغذية والمتابعة..." style="font-size: 1rem; line-height: 1.6; padding: 12px;"></textarea>
     </div>
 
-    <button class="btn btn-report" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="printPostOpPatientReport()">🖨️ معاينة وتوليد التقرير للطباعة</button>
+    <!-- أزرار التحكم الجديدة (حفظ أونلاين + حفظ وطباعة) -->
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <button class="btn btn-success" style="flex: 1; padding: 12px; font-size: 1rem;" onclick="saveReportEditsOnly()">💾 حفظ التقرير أونلاين</button>
+      <button class="btn btn-report" style="flex: 1; padding: 12px; font-size: 1rem;" onclick="saveAndPrintPostOpReport()">🖨️ حفظ وطباعة التقرير</button>
+    </div>
   </div>
 </div>
 
 <!-- Modal Audit Logs (سجل الحركة والتعديلات - للآدمن فقط) -->
 <div id="logsModal" class="modal">
   <div class="modal-content">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px;">
       <h3 style="color: var(--primary);">📜 سجل حركة وتعديلات متابعات Post-Op (خاص بالإدارة)</h3>
       <button onclick="closeLogsModal()" style="background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">إغلاق X</button>
     </div>
@@ -1177,8 +1181,8 @@
 
     currentActiveDbId = dbId;
     document.getElementById('repPatientCode').value = item.code || '';
-    document.getElementById('repModalTitle').innerText = `📄 إعداد التقرير الطبي للمريض: ${item.name} (${item.code || '-'})`;
-    document.getElementById('repMedicalText').value = item.doctorNotes ? `الحالة خضعت لجراحة (${item.operation || 'السمنة'}) بتاريخ ${item.opDate || '-'}. الحالة مستقرة وتوصى بالمتابعة الدورية، الالتزام بالتعليمات الغذائية، وإجراء الفحوصات الدورية المخصصة.\n\n[ملاحظات المتابعة]: ${item.doctorNotes}` : `الحالة خضعت لجراحة (${item.operation || 'السمنة'}) بتاريخ ${item.opDate || '-'}. الحالة مستقرة وتوصى بالمتابعة الدورية، الالتزام بالتعليمات الغذائية، وإجراء الفحوصات الدورية المخصصة.`;
+    document.getElementById('repModalTitle').innerText = `📄 إعداد وتعديل التقرير الطبي للمريض: ${item.name} (${item.code || '-'})`;
+    document.getElementById('repMedicalText').value = item.doctorNotes || `الحالة خضعت لجراحة (${item.operation || 'السمنة'}) بتاريخ ${item.opDate || '-'}. الحالة مستقرة وتوصى بالمتابعة الدورية، الالتزام بالتعليمات الغذائية، وإجراء الفحوصات الدورية المخصصة.`;
 
     document.getElementById('reportModal').style.display = 'flex';
   }
@@ -1187,7 +1191,38 @@
     document.getElementById('reportModal').style.display = 'none';
   }
 
-  async function printPostOpPatientReport() {
+  // 1. حفظ التعديلات التي تم إجراؤها على التقرير أونلاين فقط دون طباعة
+  async function saveReportEditsOnly() {
+    let item = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
+    if (!item) return;
+
+    let newNotes = document.getElementById('repMedicalText').value.trim();
+    let updatedPayload = {
+      ...item,
+      doctorNotes: newNotes,
+      lastEditedBy: currentUser ? currentUser.full_name : 'غير محدد'
+    };
+    delete updatedPayload.dbId;
+
+    const { error } = await supabaseClient.from('postop_records').update({ data: updatedPayload }).eq('id', currentActiveDbId);
+
+    if (!error) {
+      alert("✅ تم حفظ محتوى التقرير أونلاين بنجاح!");
+      logActivity('تعديل تقرير طبي', `تم تحديث تقرير المريض: ${item.name} (كود: ${item.code})`);
+      fetchPostOpFromSupabase();
+    } else {
+      alert("⚠️ تعذر حفظ التقرير، يرجى المحاولة لاحقاً.");
+    }
+  }
+
+  // 2. حفظ التعديلات ثم فتح صفحة المعاينة والطباعة الفورية
+  async function saveAndPrintPostOpReport() {
+    await saveReportEditsOnly();
+    closeReportModal();
+    printPostOpPatientReportDirect();
+  }
+
+  async function printPostOpPatientReportDirect() {
     let currentPost = allPostOpRecords.find(a => a.dbId === currentActiveDbId);
     if (!currentPost) return;
 
@@ -1354,9 +1389,8 @@
     document.getElementById('pDate').innerText = 'تاريخ التقرير: ' + new Date().toLocaleDateString('ar-EG');
     document.getElementById('pContent').innerHTML = printHTML;
 
-    logActivity('طباعة تقرير حالة', `تم اصدار تقرير طبي للمريض: ${patientName} (${patientCode}) - نوع التقرير: ${reportTitle}`);
+    logActivity('طباعة تقرير حالة', `تم طباعة التقرير الطبي للمريض: ${patientName} (${patientCode})`);
 
-    closeReportModal();
     document.getElementById('printReceiptArea').style.display = 'block';
     window.print();
     document.getElementById('printReceiptArea').style.display = 'none';
